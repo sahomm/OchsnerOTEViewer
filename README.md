@@ -122,6 +122,15 @@ Stromwandlern im Sicherungskasten): Das ist Arbeit an spannungsführenden Leiter
 außerdem darauf, dass der gewählte Sensor wirklich nur den Stromkreis der Wärmepumpe misst,
 nicht den gesamten Haushalt.
 
+**Kompatible Zähler (Auto-Erkennung):** Statt die 6 Felder oben einzeln zu befüllen, kannst du bei der Einrichtung auch nur ein bestehendes Home-Assistant-Gerät auswählen ("Externes 3-Phasen-Zählergerät") – die Integration versucht dann selbst, dessen Energie-/Leistungs-Entities pro Phase zu finden (siehe `meter_profiles.py`). Aktuell unterstützt:
+
+| Gerät | Status |
+|---|---|
+| Shelly 3EM (Gen1), offizielle `shelly`-Integration | ✅ verifiziert |
+| Shelly Pro 3EM (Gen2) und andere Zähler | ❌ noch nicht – Struktur unbekannt, bitte manuell befüllen |
+
+Wird das gewählte Gerät nicht erkannt, erscheint ein Fehler und du füllst stattdessen einfach die 6 Felder manuell aus – das funktioniert unabhängig davon immer. Unterstützung für weitere Zähler lässt sich per PR ergänzen: eine neue `MeterProfile`-Eintrag in `meter_profiles.py` mit einer `resolve()`-Funktion, die aus dem Geräte-/Entity-Registry die passenden Entities findet.
+
 **COP, berechnet (Durchfluss-Methode):** Zusätzlich zum Ochsner-eigenen (undokumentierten)
 "Leistungszahl COP"-Register gibt es einen zweiten, unabhängig berechneten COP-Sensor:
 
@@ -144,7 +153,9 @@ seinen Verlauf ab sofort mitschreibt.
 
 Issues und Pull Requests sind willkommen – insbesondere Rückmeldungen von Besitzern anderer
 Ochsner-Wärmepumpenmodelle mit OTE-Regler (z. B. Sole-/Wasser-Wärmepumpen, oder mit
-Kühlfunktion/Zusatzheizung), um die Registerliste und Kompatibilität zu erweitern.
+Kühlfunktion/Zusatzheizung), um die Registerliste und Kompatibilität zu erweitern. Ebenso
+willkommen: neue Einträge in der Zähler-Kompatibilitätsliste oben (`meter_profiles.py`) für
+weitere 3-Phasen-Zähler neben dem aktuell unterstützten Shelly 3EM Gen1.
 
 ## Lizenz
 

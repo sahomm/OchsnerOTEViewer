@@ -12,11 +12,13 @@ from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.helpers import selector
 
+from . import meter_profiles
 from .const import (
     BASE_REGISTER,
     CONF_EXTERNAL_ENERGY_SENSOR_1,
     CONF_EXTERNAL_ENERGY_SENSOR_2,
     CONF_EXTERNAL_ENERGY_SENSOR_3,
+    CONF_EXTERNAL_METER_DEVICE,
     CONF_EXTERNAL_POWER_SENSOR_1,
     CONF_EXTERNAL_POWER_SENSOR_2,
     CONF_EXTERNAL_POWER_SENSOR_3,
@@ -26,6 +28,8 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    EXTERNAL_ENERGY_SENSOR_KEYS,
+    EXTERNAL_POWER_SENSOR_KEYS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -56,6 +60,17 @@ EXTERNAL_POWER_SENSOR_SELECTOR = selector.EntitySelector(
     )
 )
 
+# Convenience alternative to the 6 manual fields above: pick one device and let
+# meter_profiles.detect() resolve its per-phase energy/power entities itself. Scoped
+# to devices that expose at least one energy sensor, to keep the picker's device list
+# short - this does not by itself guarantee the device is actually recognized, that's
+# what detect() checks. See meter_profiles.py / README "Kompatible Zähler".
+EXTERNAL_METER_DEVICE_SELECTOR = selector.DeviceSelector(
+    selector.DeviceSelectorConfig(
+        entity=selector.EntityFilterSelectorConfig(domain="sensor", device_class="energy")
+    )
+)
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
@@ -82,6 +97,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_EXTERNAL_POWER_SENSOR_1): EXTERNAL_POWER_SENSOR_SELECTOR,
         vol.Optional(CONF_EXTERNAL_POWER_SENSOR_2): EXTERNAL_POWER_SENSOR_SELECTOR,
         vol.Optional(CONF_EXTERNAL_POWER_SENSOR_3): EXTERNAL_POWER_SENSOR_SELECTOR,
+        # Optional shortcut for the 6 fields above: pick one recognized meter device
+        # and have them filled in automatically (see meter_profiles.py). If set and
+        # recognized, this overrides whatever is manually entered above.
+        vol.Optional(CONF_EXTERNAL_METER_DEVICE): EXTERNAL_METER_DEVICE_SELECTOR,
     }
 )
 
@@ -117,6 +136,18 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            meter_device_id = user_input.get(CONF_EXTERNAL_METER_DEVICE)
+            if meter_device_id:
+                detected = meter_profiles.detect(self.hass, meter_device_id)
+                if detected is None:
+                    errors["base"] = "meter_not_recognized"
+                else:
+                    _, phases = detected
+                    for i, (energy_entity_id, power_entity_id) in enumerate(phases):
+                        user_input[EXTERNAL_ENERGY_SENSOR_KEYS[i]] = energy_entity_id
+                        user_input[EXTERNAL_POWER_SENSOR_KEYS[i]] = power_entity_id
+
+        if user_input is not None and not errors:
             unique_id = f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:{user_input[CONF_SLAVE_ID]}"
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()

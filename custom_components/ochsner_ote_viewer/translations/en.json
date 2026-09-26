@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to OTE Modbus Gateway",
-        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet. The external electricity/power sensor fields are optional (energy sensors feed the lifetime efficiency/SPF sensor, power sensors feed the real-time computed COP sensor) - see the README before wiring up new metering hardware.",
+        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet. The external electricity/power sensor fields are optional (energy sensors feed the lifetime efficiency/SPF sensor, power sensors feed the real-time computed COP sensor) - see the README before wiring up new metering hardware. Instead of the 6 fields, you can also just pick a recognized meter device (see README \"Compatible meters\").",
         "data": {
           "host": "Host / IP address",
           "port": "Port",
@@ -16,13 +16,15 @@
           "external_energy_sensor_3": "External electricity sensor, phase 3 (optional)",
           "external_power_sensor_1": "External power sensor, phase 1 (optional)",
           "external_power_sensor_2": "External power sensor, phase 2 (optional)",
-          "external_power_sensor_3": "External power sensor, phase 3 (optional)"
+          "external_power_sensor_3": "External power sensor, phase 3 (optional)",
+          "external_meter_device": "External 3-phase meter device (optional, overrides the 6 fields above)"
         }
       }
     },
     "error": {
       "cannot_connect": "Could not connect or no valid response from the gateway. Check host/port/address and that the RS485 gateway is set to \"Modbus TCP to RTU\" mode.",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "meter_not_recognized": "This device is not recognized automatically (currently supported: Shelly 3EM Gen1, see README \"Compatible meters\"). Please fill in the 6 electricity/power sensor fields manually instead, or leave this field empty."
     },
     "abort": {
       "already_configured": "This gateway is already configured"

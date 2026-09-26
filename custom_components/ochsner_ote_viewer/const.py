@@ -66,6 +66,14 @@ EXTERNAL_POWER_SENSOR_KEYS = (
     CONF_EXTERNAL_POWER_SENSOR_3,
 )
 
+# Optional convenience alternative to filling in the 6 entity fields above by hand:
+# pick a single HA device (e.g. a Shelly 3EM) and let meter_profiles.detect() figure
+# out its 3 energy + 3 power entities itself. Only ever used inside config_flow.py -
+# once resolved, it writes into the same CONF_EXTERNAL_*_SENSOR_* keys above, so
+# nothing downstream (coordinator.py) needs to know this shortcut exists. See
+# meter_profiles.py and README "Kompatible Zähler" for which devices are recognized.
+CONF_EXTERNAL_METER_DEVICE = "external_meter_device"
+
 DEFAULT_PORT = 502
 DEFAULT_SCAN_INTERVAL = 30
 

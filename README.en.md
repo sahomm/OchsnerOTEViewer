@@ -121,6 +121,21 @@ transformers in your fuse box): that is work on live mains conductors with a **r
 death** - have it installed exclusively by a qualified electrician. Also make sure the
 sensor you pick actually measures the heat pump's own circuit, not your whole household.
 
+**Compatible meters (auto-detection):** Instead of filling in the 6 fields above by hand, you
+can also just pick an existing Home Assistant device during setup ("External 3-phase meter
+device") - the integration then tries to find its per-phase energy/power entities itself (see
+`meter_profiles.py`). Currently supported:
+
+| Device | Status |
+|---|---|
+| Shelly 3EM (Gen1), official `shelly` integration | ✅ verified |
+| Shelly Pro 3EM (Gen2) and other meters | ❌ not yet - structure unknown, please fill in manually |
+
+If the selected device isn't recognized, you get an error and simply fill in the 6 fields
+manually instead - that always works regardless. Support for more meters can be added via PR:
+a new `MeterProfile` entry in `meter_profiles.py` with a `resolve()` function that locates the
+right entities from the device/entity registry.
+
 **Computed COP (flow method):** in addition to Ochsner's own (undocumented) "Leistungszahl
 COP" register, there's a second, independently-computed COP sensor:
 
@@ -144,7 +159,9 @@ Assistant's long-term statistics start tracking its history from now on.
 Issues and pull requests are welcome – especially feedback from owners of other OCHSNER
 heat pump models with an OTE controller (e.g. brine/water heat pumps, or with a cooling
 function/auxiliary heater), to help extend the
-register list and compatibility.
+register list and compatibility. Also welcome: new entries in the meter compatibility list
+above (`meter_profiles.py`) for other 3-phase meters besides the currently supported Shelly
+3EM Gen1.
 
 ## License
 
