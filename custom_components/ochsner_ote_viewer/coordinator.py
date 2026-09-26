@@ -83,7 +83,29 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             thousands = registers[counter.thousands_offset]
             data[counter.key] = thousands * 1000 + ones
 
+        data["lifetime_efficiency_jaz"] = self._compute_lifetime_efficiency(data)
+
         return data
+
+    @staticmethod
+    def _compute_lifetime_efficiency(data: dict[str, Any]) -> float | None:
+        """Heating energy / electrical energy since commissioning - only available once
+        electrical_energy_* is populated (requires an Ochsner electricity-meter
+        accessory most installations won't have, see const.py DERIVED_SENSORS)."""
+        heating_kwh = data.get("heating_energy_kwh")
+        heating_mwh = data.get("heating_energy_mwh")
+        electrical_kwh = data.get("electrical_energy_kwh")
+        electrical_mwh = data.get("electrical_energy_mwh")
+
+        if None in (heating_kwh, heating_mwh, electrical_kwh, electrical_mwh):
+            return None
+
+        heating_total = heating_mwh * 1000 + heating_kwh
+        electrical_total = electrical_mwh * 1000 + electrical_kwh
+        if electrical_total == 0:
+            return None
+
+        return round(heating_total / electrical_total, 2)
 
     async def async_close(self) -> None:
         """Close the Modbus TCP connection."""

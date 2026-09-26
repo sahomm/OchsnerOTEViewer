@@ -77,6 +77,16 @@ class OchsnerSensorDescription:
 
 
 @dataclass(frozen=True)
+class OchsnerDerivedSensorDescription:
+    """A sensor computed from other already-parsed values, not read directly
+    from a register offset."""
+
+    key: str
+    unit: str | None = None
+    state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
+
+
+@dataclass(frozen=True)
 class OchsnerCombinedCounterDescription:
     """Describes a counter split across two registers (ones 0-999 + thousands 0-999),
     as documented for Schaltzyklen/Betriebsstunden in the Ochsner PDF."""
@@ -306,4 +316,20 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
         device_class=SensorDeviceClass.DURATION,
         requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
+)
+
+# Lifetime-average efficiency, computed in the coordinator as
+# (heating_energy_kwh + heating_energy_mwh) / (electrical_energy_kwh + electrical_energy_mwh)
+# once both totals are combined. ASSUMPTION, not explicitly documented in the Ochsner PDF:
+# the kWh/MWh register pairs are combined as mwh*1000 + kwh, the same pattern the manual
+# spells out for Schaltzyklen/Betriebsstunden - but that combination note is only given for
+# those, not restated for the energy pairs. Sanity-checked against real data (heating_energy
+# = 3674 kWh + 7 MWh = 10,674 kWh total over ~2272 operating hours on a 17 kW-class heat
+# pump - a plausible multi-year total), but not independently confirmed. This sensor is
+# only ever populated once electrical_energy_kwh/mwh are themselves available, which
+# requires an Ochsner-side electricity meter accessory feeding that register - many
+# installations (including the one this project was built against) will show this as
+# unavailable, which is expected, not a bug.
+DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
+    OchsnerDerivedSensorDescription(key="lifetime_efficiency_jaz"),
 )

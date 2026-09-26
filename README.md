@@ -95,6 +95,15 @@ verifiziert werden**. Sie werden deshalb nur angelegt, wenn du das bei der Einri
 explizit aktivierst. Hast du eine dieser Funktionen und kannst die Werte bestätigen (oder
 korrigieren) – bitte über ein Issue oder einen PR melden.
 
+**Effizienz-Sensor (JAZ):** Der Sensor "Effizienz seit Inbetriebnahme (Jahresarbeitszahl/
+JAZ)" berechnet sich aus Heizenergie ÷ elektrischer Energie – beides Zähler seit
+Inbetriebnahme, also eine **Lebenszeit-Durchschnitt**, keine echte kalenderjährliche JAZ
+und kein Momentanwert. Die Kombination der kWh-/MWh-Registerpaare (angenommen als
+`MWh × 1000 + kWh`) ist ebenfalls nicht explizit im Handbuch belegt, nur plausibilisiert.
+Zusätzlich braucht dieser Sensor ein Ochsner-seitiges Stromzähler-Zubehör an der OTE, das
+viele Anlagen (auch die, an der dieses Projekt entstanden ist) nicht haben – dann bleibt
+er dauerhaft "nicht verfügbar", das ist normal.
+
 ## Mitwirken
 
 Issues und Pull Requests sind willkommen – insbesondere Rückmeldungen von Besitzern anderer
