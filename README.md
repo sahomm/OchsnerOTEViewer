@@ -122,6 +122,24 @@ Stromwandlern im Sicherungskasten): Das ist Arbeit an spannungsführenden Leiter
 außerdem darauf, dass der gewählte Sensor wirklich nur den Stromkreis der Wärmepumpe misst,
 nicht den gesamten Haushalt.
 
+**COP, berechnet (Durchfluss-Methode):** Zusätzlich zum Ochsner-eigenen (undokumentierten)
+"Leistungszahl COP"-Register gibt es einen zweiten, unabhängig berechneten COP-Sensor:
+
+```
+Wärmeleistung [kW] = Volumenstrom [L/min] × (Vorlauf − Rücklauf) [K] × 4,186 / 60
+COP = Wärmeleistung ÷ elektrische Leistung (aus optionalen externen Leistungssensoren)
+```
+
+4,186 kJ/(kg·K) ist die spezifische Wärmekapazität von Wasser – bei einem Wasser-Glykol-
+Gemisch im Heizkreis wäre der reale Wert etwas niedriger, das ist hier nicht berücksichtigt.
+Dieser Sensor braucht die **Leistungssensoren** (Watt), nicht die Energiesensoren (kWh) von
+oben – ein Momentanwert wie COP braucht Momentanleistung, keine Energiezähler. Er ist bewusst
+ein **eigener, zusätzlicher** Sensor, kein Ersatz für das Ochsner-Register – über die
+kommende Heizsaison lassen sich beide vergleichen, um herauszufinden, was das undokumentierte
+Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, Einheit
+undokumentiert)" ist dafür standardmäßig aktiviert, damit Home Assistants Langzeitstatistik
+seinen Verlauf ab sofort mitschreibt.
+
 ## Mitwirken
 
 Issues und Pull Requests sind willkommen – insbesondere Rückmeldungen von Besitzern anderer

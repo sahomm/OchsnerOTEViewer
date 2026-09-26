@@ -54,6 +54,18 @@ EXTERNAL_ENERGY_SENSOR_KEYS = (
     CONF_EXTERNAL_ENERGY_SENSOR_3,
 )
 
+# Same idea, but instantaneous power (W) instead of cumulative energy (kWh) - needed for
+# a real-time COP (a power ratio), separate from the energy sensors above (an energy
+# ratio, used for the lifetime JAZ/SPF sensor).
+CONF_EXTERNAL_POWER_SENSOR_1 = "external_power_sensor_1"
+CONF_EXTERNAL_POWER_SENSOR_2 = "external_power_sensor_2"
+CONF_EXTERNAL_POWER_SENSOR_3 = "external_power_sensor_3"
+EXTERNAL_POWER_SENSOR_KEYS = (
+    CONF_EXTERNAL_POWER_SENSOR_1,
+    CONF_EXTERNAL_POWER_SENSOR_2,
+    CONF_EXTERNAL_POWER_SENSOR_3,
+)
+
 DEFAULT_PORT = 502
 DEFAULT_SCAN_INTERVAL = 30
 
@@ -215,12 +227,15 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
     ),
+    # Enabled by default (unlike other "undocumented unit" fields) so its history
+    # accumulates in HA's long-term statistics from now on - the plan is to correlate it
+    # against computed_cop_flow_method's independently-derived thermal power over a full
+    # heating season to work out what this register actually represents.
     OchsnerSensorDescription(
         key="heating_capacity",
         offset=34,
         scale=0.1,
         signed=True,
-        entity_registry_enabled_default=False,
     ),
     OchsnerSensorDescription(
         key="buffer_temperature_top",
@@ -348,4 +363,12 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
 # unavailable, which is expected, not a bug.
 DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
     OchsnerDerivedSensorDescription(key="lifetime_efficiency_jaz"),
+    # Instantaneous COP, computed independently of Ochsner's own (undocumented-unit)
+    # "Leistungszahl COP" register: thermal power from volume_flow x (flow temp - return
+    # temp) x specific heat of water, divided by real electrical power from the external
+    # power sensors (see EXTERNAL_POWER_SENSOR_KEYS). Only available while volume_flow > 0
+    # and the power sensors are configured and available. This is a separate sensor from
+    # compressor_cop, not a replacement - comparing the two over the coming heating season
+    # is the point (see heating_capacity's comment above).
+    OchsnerDerivedSensorDescription(key="computed_cop_flow_method"),
 )
