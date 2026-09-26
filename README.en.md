@@ -6,7 +6,11 @@ Home Assistant integration for reading data from OCHSNER heat pumps with **OTE c
 generation** via the official **OTE Modbus Gateway** (TEM ZIF180, eBUS↔Modbus RTU).
 
 > **Disclaimer:** This is a private community project and is not affiliated with OCHSNER
-> Wärmepumpen GmbH in any way. All trademarks belong to their respective owners.
+> Wärmepumpen GmbH in any way. All trademarks belong to their respective owners. The
+> OCHSNER logo (`custom_components/ochsner_ote_viewer/brand/`) is used, as is common
+> practice across the Home Assistant community, solely to identify the product this
+> integration communicates with - without implying endorsement or partnership. Source:
+> official vector artwork from ochsner.com.
 
 ## Status
 
