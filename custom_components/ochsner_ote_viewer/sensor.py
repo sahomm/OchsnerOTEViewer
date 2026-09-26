@@ -8,7 +8,17 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import COMBINED_COUNTERS, DOMAIN, SENSORS, OchsnerCombinedCounterDescription, OchsnerSensorDescription
+from .const import (
+    COMBINED_COUNTERS,
+    CONF_HAS_AUXILIARY_HEATER,
+    CONF_HAS_COOLING,
+    DOMAIN,
+    FEATURE_AUXILIARY_HEATER,
+    FEATURE_COOLING,
+    SENSORS,
+    OchsnerCombinedCounterDescription,
+    OchsnerSensorDescription,
+)
 from .coordinator import OchsnerOteViewerCoordinator
 
 
@@ -18,12 +28,24 @@ async def async_setup_entry(
     """Set up sensors from a config entry."""
     coordinator: OchsnerOteViewerCoordinator = hass.data[DOMAIN][entry.entry_id]
 
+    enabled_features = set()
+    if entry.data.get(CONF_HAS_COOLING):
+        enabled_features.add(FEATURE_COOLING)
+    if entry.data.get(CONF_HAS_AUXILIARY_HEATER):
+        enabled_features.add(FEATURE_AUXILIARY_HEATER)
+
+    def _wanted(requires_feature: str | None) -> bool:
+        return requires_feature is None or requires_feature in enabled_features
+
     entities: list[SensorEntity] = [
-        OchsnerSensor(coordinator, entry, description) for description in SENSORS
+        OchsnerSensor(coordinator, entry, description)
+        for description in SENSORS
+        if _wanted(description.requires_feature)
     ]
     entities.extend(
         OchsnerCombinedCounterSensor(coordinator, entry, description)
         for description in COMBINED_COUNTERS
+        if _wanted(description.requires_feature)
     )
     async_add_entities(entities)
 

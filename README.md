@@ -65,7 +65,7 @@ brauchst also zusätzlich einen RS485-Adapter:
   angeschlossen.
 
 Details zur genauen Konfiguration (DIP-Schalter, Verkabelung, Netzwerk-Setup) siehe
-[docs/HARDWARE_SETUP.md](docs/HARDWARE_SETUP.md).
+[HARDWARE_SETUP.md](HARDWARE_SETUP.md).
 
 ## Installation
 
@@ -74,13 +74,28 @@ Details zur genauen Konfiguration (DIP-Schalter, Verkabelung, Netzwerk-Setup) si
 3. "Ochsner OTE Viewer" in HACS suchen und installieren, danach Home Assistant neu starten
 4. **Einstellungen → Geräte & Dienste → Integration hinzufügen → "Ochsner OTE Viewer"**
 5. Host/IP und Port deines RS485-zu-Ethernet-Gateways eingeben, sowie die Modbus-Adresse
-   deines OTE-Modbus-Gateways (siehe [docs/HARDWARE_SETUP.md](docs/HARDWARE_SETUP.md))
+   deines OTE-Modbus-Gateways (siehe [HARDWARE_SETUP.md](HARDWARE_SETUP.md))
+
+Bei der Einrichtung fragt die Integration zusätzlich, ob deine Anlage eine **Kühlfunktion**
+bzw. eine **von Ochsner gesteuerte Zusatzheizung** hat – davon hängt ab, welche Sensoren
+angelegt werden (siehe nächster Abschnitt).
+
+## Nicht verifizierte Register
+
+Die Anlage, an der dieses Projekt entstanden ist, hat weder eine aktive Kühlfunktion noch
+eine von Ochsner gesteuerte Zusatzheizung (die eigenen Heizstäbe hängen direkt am Puffer,
+gesteuert über eine separate UVR16x2, nicht über die Ochsner-eigene "Zusatzheizung"-Logik).
+Die entsprechenden Register (Kühlpuffer/Kühlenergie, Zusatzheizung-Status/-Zähler) folgen
+zwar der Handbuch-Beschreibung, konnten aber **nie gegen eine Anlage mit diesen Funktionen
+verifiziert werden**. Sie werden deshalb nur angelegt, wenn du das bei der Einrichtung
+explizit aktivierst. Hast du eine dieser Funktionen und kannst die Werte bestätigen (oder
+korrigieren) – bitte über ein Issue oder einen PR melden.
 
 ## Mitwirken
 
 Issues und Pull Requests sind willkommen – insbesondere Rückmeldungen von Besitzern anderer
-Ochsner-Wärmepumpenmodelle mit OTE-Regler (z. B. Sole-/Wasser-Wärmepumpen), um die
-Registerliste und Kompatibilität zu erweitern.
+Ochsner-Wärmepumpenmodelle mit OTE-Regler (z. B. Sole-/Wasser-Wärmepumpen, oder mit
+Kühlfunktion/Zusatzheizung), um die Registerliste und Kompatibilität zu erweitern.
 
 ## Lizenz
 

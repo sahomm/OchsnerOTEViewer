@@ -9,9 +9,9 @@ your own values depend on your DIP switch settings and your network.
 ## What you need
 
 - An OCHSNER heat pump with an OTE controller and an **OTE Modbus Gateway** (TEM ZIF180)
-  already installed – see [README: Is this project for you?](../README.en.md#is-this-project-for-you)
+  already installed – see [README: Is this project for you?](README.en.md#is-this-project-for-you)
 - An RS485 adapter (USB for testing, RS485-to-Ethernet for permanent use – see
-  [README: Required hardware](../README.en.md#required-hardware))
+  [README: Required hardware](README.en.md#required-hardware))
 - Some time and (ideally) installer/commissioning access, to look inside the electrical
   cabinet and set DIP switches
 

@@ -64,7 +64,7 @@ therefore need an additional RS485 adapter:
 - **For an initial connectivity test (optional, cheaper):** A simple USB-to-RS485 adapter
   (e.g. Waveshare USB TO RS485), connected directly to the machine running Home Assistant.
 
-See [docs/HARDWARE_SETUP.en.md](docs/HARDWARE_SETUP.en.md) for exact configuration details
+See [HARDWARE_SETUP.en.md](HARDWARE_SETUP.en.md) for exact configuration details
 (DIP switches, wiring, network setup).
 
 ## Installation
@@ -74,12 +74,28 @@ See [docs/HARDWARE_SETUP.en.md](docs/HARDWARE_SETUP.en.md) for exact configurati
 3. Search for "Ochsner OTE Viewer" in HACS and install it, then restart Home Assistant
 4. **Settings → Devices & Services → Add Integration → "Ochsner OTE Viewer"**
 5. Enter the host/IP and port of your RS485-to-Ethernet gateway, and the Modbus address of
-   your OTE Modbus Gateway (see [docs/HARDWARE_SETUP.en.md](docs/HARDWARE_SETUP.en.md))
+   your OTE Modbus Gateway (see [HARDWARE_SETUP.en.md](HARDWARE_SETUP.en.md))
+
+During setup, the integration also asks whether your system has an **active cooling
+function** and/or an **Ochsner-controlled auxiliary heater** - this determines which
+sensors get created (see next section).
+
+## Unverified registers
+
+The system this project was built against has neither an active cooling function nor an
+Ochsner-controlled auxiliary heater (its own backup heating elements are wired directly
+into the buffer via a separate UVR16x2 controller, bypassing Ochsner's own "auxiliary
+heater" logic entirely). The corresponding registers (cooling buffer/cooling energy,
+auxiliary heater status/counters) follow the manual's description, but **could never be
+verified against a system that actually has these features**. They are therefore only
+created if you explicitly enable them during setup. If you have one of these features and
+can confirm (or correct) the readings, please open an issue or PR.
 
 ## Contributing
 
 Issues and pull requests are welcome – especially feedback from owners of other OCHSNER
-heat pump models with an OTE controller (e.g. brine/water heat pumps), to help extend the
+heat pump models with an OTE controller (e.g. brine/water heat pumps, or with a cooling
+function/auxiliary heater), to help extend the
 register list and compatibility.
 
 ## License

@@ -10,9 +10,9 @@ und deinem Netzwerk ab.
 ## Was du brauchst
 
 - Ein OCHSNER-Wärmepumpe mit OTE-Regler und bereits verbautem **OTE-Modbus-Gateway**
-  (TEM ZIF180) – siehe [README: Ist dieses Projekt für dich?](../README.md#ist-dieses-projekt-für-dich)
+  (TEM ZIF180) – siehe [README: Ist dieses Projekt für dich?](README.md#ist-dieses-projekt-für-dich)
 - Einen RS485-Adapter (USB für den Test, RS485-zu-Ethernet für den Dauerbetrieb – siehe
-  [README: Benötigte Hardware](../README.md#benötigte-hardware))
+  [README: Benötigte Hardware](README.md#benötigte-hardware))
 - Etwas Zeit und (idealerweise) Monteurs-/Installateurszugang, um im Schaltschrank
   nachzusehen und DIP-Schalter einzustellen
 
