@@ -57,7 +57,7 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         try:
             result = await self.client.read_holding_registers(
-                address=BASE_REGISTER, count=BLOCK_SIZE, slave=self._slave_id
+                address=BASE_REGISTER, count=BLOCK_SIZE, device_id=self._slave_id
             )
         except ModbusException as err:
             raise UpdateFailed(f"Modbus error while reading register block: {err}") from err
