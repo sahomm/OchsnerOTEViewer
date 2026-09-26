@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Verbindung zum OTE-Modbus-Gateway",
-        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt. Die Kühlung-/Zusatzheizung-Optionen unten bestimmen, welche Sensoren angelegt werden – im Zweifel deaktiviert lassen, diese Register wurden noch nicht gegen echte Hardware verifiziert. Die Felder für externe Strom-/Leistungssensoren sind optional (Stromzähler-Sensoren speisen den Lebenszeit-Effizienz/JAZ-Sensor, Leistungssensoren den berechneten Echtzeit-COP) – lies vor dem Nachrüsten neuer Zähler-Hardware das README. Statt der 6 Felder kannst du bei einem erkannten Zählergerät (siehe README \"Kompatible Zähler\") auch einfach das Gerät selbst auswählen.",
+        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt. Die Kühlung-/Zusatzheizung-Optionen unten bestimmen, welche Sensoren angelegt werden – im Zweifel deaktiviert lassen, diese Register wurden noch nicht gegen echte Hardware verifiziert.",
         "data": {
           "host": "Host / IP-Adresse",
           "port": "Port",
@@ -11,20 +11,27 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "has_cooling": "Anlage hat eine aktive Kühlfunktion",
           "has_auxiliary_heater": "Anlage hat eine von Ochsner gesteuerte Zusatzheizung",
+          "configure_external_sensors": "Externe Stromsensoren einrichten (optional, für Lebenszeit-Effizienz/JAZ und berechneten COP)"
+        }
+      },
+      "external_sensors": {
+        "title": "Externe Stromsensoren",
+        "description": "Ochsner selbst liefert dafür meist keine brauchbaren Werte, daher optional: Stromzähler-Sensoren speisen den Lebenszeit-Effizienz/JAZ-Sensor, Leistungssensoren den berechneten Echtzeit-COP. Wurde ein bekanntes Zählergerät in deiner Home-Assistant-Installation gefunden, kannst du es oben direkt auswählen – die 6 Felder darunter werden dann automatisch befüllt. Wurde nichts gefunden (oder ist dein Gerät noch nicht unterstützt, siehe README \"Kompatible Zähler\"), fülle die 6 Felder stattdessen manuell aus. Lies vor dem Nachrüsten neuer Zähler-Hardware das README (Lebensgefahr bei Arbeiten am Sicherungskasten – nur durch eine Elektrofachkraft).",
+        "data": {
+          "external_meter_device": "Erkanntes Zählergerät (falls gefunden)",
           "external_energy_sensor_1": "Externer Stromzähler-Sensor, Phase 1 (optional)",
           "external_energy_sensor_2": "Externer Stromzähler-Sensor, Phase 2 (optional)",
           "external_energy_sensor_3": "Externer Stromzähler-Sensor, Phase 3 (optional)",
           "external_power_sensor_1": "Externer Leistungssensor, Phase 1 (optional)",
           "external_power_sensor_2": "Externer Leistungssensor, Phase 2 (optional)",
-          "external_power_sensor_3": "Externer Leistungssensor, Phase 3 (optional)",
-          "external_meter_device": "Externes 3-Phasen-Zählergerät (optional, ersetzt die 6 Felder oben)"
+          "external_power_sensor_3": "Externer Leistungssensor, Phase 3 (optional)"
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen oder keine gültige Antwort vom Gateway. Prüfe Host/Port/Adresse und ob das RS485-Gateway auf \"Modbus TCP to RTU\" eingestellt ist.",
       "unknown": "Unerwarteter Fehler",
-      "meter_not_recognized": "Dieses Gerät wird nicht automatisch erkannt (aktuell unterstützt: Shelly 3EM Gen1, siehe README \"Kompatible Zähler\"). Bitte die 6 Felder für Strom-/Leistungssensoren stattdessen manuell ausfüllen, oder das Feld leer lassen."
+      "meter_not_recognized": "Dieses Gerät wurde nicht mehr gefunden oder wird nicht mehr erkannt. Bitte die 6 Felder für Strom-/Leistungssensoren stattdessen manuell ausfüllen, oder das Feld leer lassen."
     },
     "abort": {
       "already_configured": "Dieses Gateway ist bereits eingerichtet"

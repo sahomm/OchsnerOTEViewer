@@ -1,13 +1,18 @@
 """Registry of recognizable "external 3-phase meter" device profiles.
 
-Lets a user pick a single Home Assistant device (e.g. a Shelly 3EM) during setup
-instead of manually selecting 6 individual energy/power entities. Each profile below
-describes how to recognize one specific meter model/generation from its Home
-Assistant device/entity registry structure, and how to locate its three energy +
+Lets the config flow proactively scan the user's Home Assistant instance for a
+recognized meter device (e.g. a Shelly 3EM) during setup, instead of making everyone
+manually select 6 individual energy/power entities - or, worse, offering an open
+"pick any device" picker (tried and rejected, see DECISIONS.md: it can't tell the
+right device apart from unrelated ones, and for some profiles the right device to
+pick doesn't even carry the entities itself - see the Shelly 3EM Gen1 profile below).
+
+Each profile describes how to recognize one specific meter model/generation from its
+Home Assistant device/entity registry structure, and how to locate its three energy +
 three power entities from it.
 
 To support another meter, add a new profile to METER_PROFILES - nothing else in this
-integration needs to change, since detection just resolves to the same
+integration needs to change, since a match just resolves to the same
 CONF_EXTERNAL_ENERGY_SENSOR_1/2/3 / CONF_EXTERNAL_POWER_SENSOR_1/2/3 keys that the
 manual entity-picker fields also produce (see const.py and config_flow.py). See the
 README "Kompatible Zähler" section for the current list and how to contribute one.
@@ -94,22 +99,39 @@ METER_PROFILES: tuple[MeterProfile, ...] = (
 )
 
 
-def detect(
-    hass: HomeAssistant, device_id: str
-) -> tuple[MeterProfile, list[PhaseEntityPair]] | None:
-    """Try every known meter profile against the given device.
+@dataclass(frozen=True)
+class DiscoveredMeter:
+    """One device found in the registry that matched a known meter profile."""
 
-    Returns the first matching profile plus its resolved (energy, power) entity
-    pairs, or None if no profile recognizes this device.
+    device_id: str
+    device_name: str
+    profile: MeterProfile
+    phases: list[PhaseEntityPair]
+
+
+def discover(hass: HomeAssistant) -> list[DiscoveredMeter]:
+    """Scan every device in the registry against every known meter profile.
+
+    Returns every recognized match, so the config flow can offer the user a closed
+    choice of only real, verified candidates - never an open "pick any device"
+    picker. Cheap: both registries are already fully loaded in memory, this is a
+    plain in-process scan, no I/O.
     """
     device_registry = dr.async_get(hass)
-    device = device_registry.async_get(device_id)
-    if device is None:
-        return None
+    found: list[DiscoveredMeter] = []
 
-    for profile in METER_PROFILES:
-        phases = profile.resolve(hass, device)
-        if phases is not None:
-            return profile, phases
+    for device in device_registry.devices.values():
+        for profile in METER_PROFILES:
+            phases = profile.resolve(hass, device)
+            if phases is not None:
+                found.append(
+                    DiscoveredMeter(
+                        device_id=device.id,
+                        device_name=device.name_by_user or device.name or device.id,
+                        profile=profile,
+                        phases=phases,
+                    )
+                )
+                break  # first matching profile wins for this device
 
-    return None
+    return found

@@ -15,6 +15,7 @@ from homeassistant.helpers import selector
 from . import meter_profiles
 from .const import (
     BASE_REGISTER,
+    CONF_CONFIGURE_EXTERNAL_SENSORS,
     CONF_EXTERNAL_ENERGY_SENSOR_1,
     CONF_EXTERNAL_ENERGY_SENSOR_2,
     CONF_EXTERNAL_ENERGY_SENSOR_3,
@@ -60,17 +61,11 @@ EXTERNAL_POWER_SENSOR_SELECTOR = selector.EntitySelector(
     )
 )
 
-# Convenience alternative to the 6 manual fields above: pick one device and let
-# meter_profiles.detect() resolve its per-phase energy/power entities itself. Scoped
-# to devices that expose at least one energy sensor, to keep the picker's device list
-# short - this does not by itself guarantee the device is actually recognized, that's
-# what detect() checks. See meter_profiles.py / README "Kompatible Zähler".
-EXTERNAL_METER_DEVICE_SELECTOR = selector.DeviceSelector(
-    selector.DeviceSelectorConfig(
-        entity=selector.EntityFilterSelectorConfig(domain="sensor", device_class="energy")
-    )
-)
-
+# Step 1: connection basics only. The 6 external-sensor fields live behind the
+# CONF_CONFIGURE_EXTERNAL_SENSORS checkbox on a separate step (see
+# async_step_external_sensors) instead of being shown to every user up front - most
+# installations don't have this hardware, and 6 extra fields on the very first setup
+# screen would bury the actually-required connection fields (see DECISIONS.md).
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
@@ -83,26 +78,41 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         # const.py "UNVERIFIED REGISTERS" for why.
         vol.Optional(CONF_HAS_COOLING, default=False): bool,
         vol.Optional(CONF_HAS_AUXILIARY_HEATER, default=False): bool,
-        # Optional: use an external meter (e.g. a Shelly 3EM's per-phase energy
-        # entities) for the lifetime-efficiency sensor instead of Ochsner's own
-        # electrical_energy_* registers, which most installations don't have
-        # populated. Leave empty for a single-phase meter with just one entity;
-        # fill all three for a 3-phase heat pump measured per phase.
-        vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_1): EXTERNAL_ENERGY_SENSOR_SELECTOR,
-        vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_2): EXTERNAL_ENERGY_SENSOR_SELECTOR,
-        vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_3): EXTERNAL_ENERGY_SENSOR_SELECTOR,
-        # Optional: real-time power sensors (W), for the independently-computed
-        # flow-method COP sensor. Separate from the energy sensors above (kWh, used for
-        # the lifetime JAZ/SPF sensor) - a power ratio needs power inputs.
-        vol.Optional(CONF_EXTERNAL_POWER_SENSOR_1): EXTERNAL_POWER_SENSOR_SELECTOR,
-        vol.Optional(CONF_EXTERNAL_POWER_SENSOR_2): EXTERNAL_POWER_SENSOR_SELECTOR,
-        vol.Optional(CONF_EXTERNAL_POWER_SENSOR_3): EXTERNAL_POWER_SENSOR_SELECTOR,
-        # Optional shortcut for the 6 fields above: pick one recognized meter device
-        # and have them filled in automatically (see meter_profiles.py). If set and
-        # recognized, this overrides whatever is manually entered above.
-        vol.Optional(CONF_EXTERNAL_METER_DEVICE): EXTERNAL_METER_DEVICE_SELECTOR,
+        vol.Optional(CONF_CONFIGURE_EXTERNAL_SENSORS, default=False): bool,
     }
 )
+
+
+def _build_external_sensors_schema(
+    discovered: list[meter_profiles.DiscoveredMeter],
+) -> vol.Schema:
+    """Build the step-2 schema. The discovered-device field is only included at all
+    if meter_profiles.discover() actually found something - an empty list means
+    nothing recognized is present, so there's nothing meaningful to choose from."""
+    schema_dict: dict[Any, Any] = {}
+
+    if discovered:
+        options = {meter.device_id: f"{meter.profile.name}: {meter.device_name}" for meter in discovered}
+        schema_dict[vol.Optional(CONF_EXTERNAL_METER_DEVICE)] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(value=value, label=label)
+                    for value, label in options.items()
+                ]
+            )
+        )
+
+    schema_dict.update(
+        {
+            vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_1): EXTERNAL_ENERGY_SENSOR_SELECTOR,
+            vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_2): EXTERNAL_ENERGY_SENSOR_SELECTOR,
+            vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_3): EXTERNAL_ENERGY_SENSOR_SELECTOR,
+            vol.Optional(CONF_EXTERNAL_POWER_SENSOR_1): EXTERNAL_POWER_SENSOR_SELECTOR,
+            vol.Optional(CONF_EXTERNAL_POWER_SENSOR_2): EXTERNAL_POWER_SENSOR_SELECTOR,
+            vol.Optional(CONF_EXTERNAL_POWER_SENSOR_3): EXTERNAL_POWER_SENSOR_SELECTOR,
+        }
+    )
+    return vol.Schema(schema_dict)
 
 
 async def _test_connection(host: str, port: int, slave_id: int) -> None:
@@ -130,24 +140,15 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        self._base_data: dict[str, Any] = {}
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            meter_device_id = user_input.get(CONF_EXTERNAL_METER_DEVICE)
-            if meter_device_id:
-                detected = meter_profiles.detect(self.hass, meter_device_id)
-                if detected is None:
-                    errors["base"] = "meter_not_recognized"
-                else:
-                    _, phases = detected
-                    for i, (energy_entity_id, power_entity_id) in enumerate(phases):
-                        user_input[EXTERNAL_ENERGY_SENSOR_KEYS[i]] = energy_entity_id
-                        user_input[EXTERNAL_POWER_SENSOR_KEYS[i]] = power_entity_id
-
-        if user_input is not None and not errors:
             unique_id = f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:{user_input[CONF_SLAVE_ID]}"
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
@@ -162,15 +163,62 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected error while testing connection")
                 errors["base"] = "unknown"
             else:
+                configure_external_sensors = user_input.pop(
+                    CONF_CONFIGURE_EXTERNAL_SENSORS, False
+                )
+                self._base_data = user_input
+                if configure_external_sensors:
+                    return await self.async_step_external_sensors()
                 return self.async_create_entry(
-                    title=f"Ochsner OTE Viewer ({user_input[CONF_HOST]})",
-                    data=user_input,
+                    title=f"Ochsner OTE Viewer ({self._base_data[CONF_HOST]})",
+                    data=self._base_data,
                 )
 
         return self.async_show_form(
             step_id="user",
             data_schema=self.add_suggested_values_to_schema(
                 STEP_USER_DATA_SCHEMA, user_input or {}
+            ),
+            errors=errors,
+        )
+
+    async def async_step_external_sensors(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Optional second step, only reached if the step-1 checkbox was ticked.
+
+        Offers auto-detected meter devices (see meter_profiles.discover()) plus the
+        6 manual entity fields as a fallback/override - see DECISIONS.md for why this
+        isn't a single open device picker.
+        """
+        errors: dict[str, str] = {}
+        discovered = meter_profiles.discover(self.hass)
+
+        if user_input is not None:
+            meter_device_id = user_input.get(CONF_EXTERNAL_METER_DEVICE)
+            if meter_device_id:
+                match = next(
+                    (meter for meter in discovered if meter.device_id == meter_device_id),
+                    None,
+                )
+                if match is None:
+                    errors["base"] = "meter_not_recognized"
+                else:
+                    for i, (energy_entity_id, power_entity_id) in enumerate(match.phases):
+                        user_input[EXTERNAL_ENERGY_SENSOR_KEYS[i]] = energy_entity_id
+                        user_input[EXTERNAL_POWER_SENSOR_KEYS[i]] = power_entity_id
+
+            if not errors:
+                data = {**self._base_data, **user_input}
+                return self.async_create_entry(
+                    title=f"Ochsner OTE Viewer ({data[CONF_HOST]})",
+                    data=data,
+                )
+
+        return self.async_show_form(
+            step_id="external_sensors",
+            data_schema=self.add_suggested_values_to_schema(
+                _build_external_sensors_schema(discovered), user_input or {}
             ),
             errors=errors,
         )
