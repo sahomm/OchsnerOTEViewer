@@ -12,11 +12,13 @@ from .const import (
     COMBINED_COUNTERS,
     CONF_HAS_AUXILIARY_HEATER,
     CONF_HAS_COOLING,
+    DERIVED_SENSORS,
     DOMAIN,
     FEATURE_AUXILIARY_HEATER,
     FEATURE_COOLING,
     SENSORS,
     OchsnerCombinedCounterDescription,
+    OchsnerDerivedSensorDescription,
     OchsnerSensorDescription,
 )
 from .coordinator import OchsnerOteViewerCoordinator
@@ -46,6 +48,9 @@ async def async_setup_entry(
         OchsnerCombinedCounterSensor(coordinator, entry, description)
         for description in COMBINED_COUNTERS
         if _wanted(description.requires_feature)
+    )
+    entities.extend(
+        OchsnerDerivedSensor(coordinator, entry, description) for description in DERIVED_SENSORS
     )
     async_add_entities(entities)
 
@@ -98,4 +103,18 @@ class OchsnerCombinedCounterSensor(_OchsnerBaseSensor):
         super().__init__(coordinator, entry, description.key)
         self._attr_native_unit_of_measurement = description.unit
         self._attr_device_class = description.device_class
+        self._attr_state_class = description.state_class
+
+
+class OchsnerDerivedSensor(_OchsnerBaseSensor):
+    """A sensor computed from other already-parsed coordinator values."""
+
+    def __init__(
+        self,
+        coordinator: OchsnerOteViewerCoordinator,
+        entry: ConfigEntry,
+        description: OchsnerDerivedSensorDescription,
+    ) -> None:
+        super().__init__(coordinator, entry, description.key)
+        self._attr_native_unit_of_measurement = description.unit
         self._attr_state_class = description.state_class

@@ -55,7 +55,8 @@
       "heat_pump_switch_cycles": { "name": "Heat pump switch cycles" },
       "heat_pump_operating_hours": { "name": "Heat pump operating hours" },
       "auxiliary_heater_switch_cycles": { "name": "Auxiliary heater switch cycles" },
-      "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" }
+      "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" },
+      "lifetime_efficiency_jaz": { "name": "Efficiency since commissioning (seasonal performance factor/SPF)" }
     }
   }
 }

@@ -95,6 +95,15 @@ verified against a system that actually has these features**. They are therefore
 created if you explicitly enable them during setup. If you have one of these features and
 can confirm (or correct) the readings, please open an issue or PR.
 
+**Efficiency sensor (SPF):** the "Efficiency since commissioning (seasonal performance
+factor/SPF)" sensor is heating energy ÷ electrical energy - both lifetime counters since
+commissioning, so this is a **lifetime average**, not a true calendar-year SPF and not an
+instantaneous value. Combining the kWh/MWh register pairs (assumed as `MWh × 1000 + kWh`)
+is likewise not explicitly documented in the manual, only sanity-checked. This sensor also
+needs an Ochsner-side electricity-meter accessory on the OTE that many installations
+(including the one this project was built against) don't have - it will then permanently
+read "unavailable", which is expected.
+
 ## Contributing
 
 Issues and pull requests are welcome – especially feedback from owners of other OCHSNER
