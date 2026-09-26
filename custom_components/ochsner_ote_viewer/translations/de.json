@@ -3,12 +3,14 @@
     "step": {
       "user": {
         "title": "Verbindung zum OTE-Modbus-Gateway",
-        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt.",
+        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt. Die Kühlung-/Zusatzheizung-Optionen unten bestimmen, welche Sensoren angelegt werden – im Zweifel deaktiviert lassen, diese Register wurden noch nicht gegen echte Hardware verifiziert.",
         "data": {
           "host": "Host / IP-Adresse",
           "port": "Port",
           "slave_id": "Modbus-Adresse (DIP-Schalter 6-9)",
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "has_cooling": "Anlage hat eine aktive Kühlfunktion",
+          "has_auxiliary_heater": "Anlage hat eine von Ochsner gesteuerte Zusatzheizung"
         }
       }
     },
@@ -31,7 +33,7 @@
       "suction_gas_pressure": { "name": "Sauggasdruck" },
       "hot_gas_pressure": { "name": "Heißgasdruck" },
       "volume_flow": { "name": "Volumenstrom" },
-      "compressor_cop": { "name": "Leistungszahl COP (Skalierung unverifiziert)" },
+      "compressor_cop": { "name": "Leistungszahl COP (Momentanwert, nur bei laufendem Verdichter aussagekräftig)" },
       "heat_generator_control_status": { "name": "Status Zusatzheizungsregelung" },
       "heat_manager_status": { "name": "Statuscode Wärmemanager" },
       "system_temperature_setpoint": { "name": "Anlagentemperatur Sollwert" },

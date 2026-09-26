@@ -7,6 +7,17 @@ register addresses (Ochsner's own PDF lists them 1-based, decimal - subtract 1).
 Only read-only "Istwerte" (actual values) are exposed as sensors. Objects 101-10A are
 write-only setpoint/mode registers (Sollwerte) and are intentionally NOT exposed - see
 README "Status" section for why write access is out of scope for now.
+
+UNVERIFIED REGISTERS: the original author's installation has neither an active cooling
+function nor an Ochsner-controlled auxiliary heater (their backup heating elements are
+wired into the buffer via a separate Technische Alternative UVR16x2, bypassing Ochsner's
+own "Zusatzheizung" logic entirely). The cooling-buffer/cooling-energy registers and the
+"Zusatzheizung" (auxiliary heater) status/counters have therefore never been cross-checked
+against a system that actually uses those features - the parsing (offsets/scale) follows
+the manual, but real-world values have not been confirmed. These sensors are gated behind
+the `has_cooling` / `has_auxiliary_heater` options set during integration setup, and are
+simply not created unless enabled. If you have one of these features and can confirm (or
+correct) the readings, please open an issue or PR.
 """
 from __future__ import annotations
 
@@ -24,9 +35,16 @@ from homeassistant.const import (
 DOMAIN = "ochsner_ote_viewer"
 
 CONF_SLAVE_ID = "slave_id"
+CONF_HAS_COOLING = "has_cooling"
+CONF_HAS_AUXILIARY_HEATER = "has_auxiliary_heater"
 
 DEFAULT_PORT = 502
 DEFAULT_SCAN_INTERVAL = 30
+
+# Feature flags used to gate sensors that could not be validated against real hardware -
+# see the "requires_feature" docstring note below for why.
+FEATURE_COOLING = "cooling"
+FEATURE_AUXILIARY_HEATER = "auxiliary_heater"
 
 # Object 100 "Verbindungs-Info" sits at Modbus address 257 (1-based, per Ochsner PDF) ->
 # 256 0-based. The gateway reserves 51 contiguous registers per heat pump unit (Objects
@@ -52,6 +70,10 @@ class OchsnerSensorDescription:
     device_class: SensorDeviceClass | None = None
     state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
     entity_registry_enabled_default: bool = True
+    # If set, this sensor is only created when the user enabled the matching feature
+    # during setup (has_cooling / has_auxiliary_heater). See the module note above
+    # "UNVERIFIED REGISTERS" for why this exists.
+    requires_feature: str | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +87,7 @@ class OchsnerCombinedCounterDescription:
     unit: str | None = None
     device_class: SensorDeviceClass | None = None
     state_class: SensorStateClass | None = SensorStateClass.TOTAL_INCREASING
+    requires_feature: str | None = None
 
 
 # Offsets are relative to BASE_REGISTER (256). Objekt-Nr in the Ochsner PDF -> offset:
@@ -136,14 +159,19 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
     ),
+    # Instantaneous COP. Only meaningful while the compressor is actually running
+    # (heat_pump_status != 0) - while idle, this register can hold a stale/undefined
+    # value (observed: 25.5 during idle, physically implausible as an instant COP).
     OchsnerSensorDescription(
         key="compressor_cop",
         offset=21,
         scale=0.1,
-        entity_registry_enabled_default=False,
     ),
     OchsnerSensorDescription(
-        key="heat_generator_control_status", offset=26, state_class=None
+        key="heat_generator_control_status",
+        offset=26,
+        state_class=None,
+        requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
     OchsnerSensorDescription(key="heat_manager_status", offset=31, state_class=None),
     OchsnerSensorDescription(
@@ -191,7 +219,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         signed=True,
         unit=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
-        entity_registry_enabled_default=False,
+        requires_feature=FEATURE_COOLING,
     ),
     OchsnerSensorDescription(
         key="cooling_buffer_temperature_bottom",
@@ -200,7 +228,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         signed=True,
         unit=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
-        entity_registry_enabled_default=False,
+        requires_feature=FEATURE_COOLING,
     ),
     OchsnerSensorDescription(
         key="cooling_energy_kwh",
@@ -208,7 +236,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        entity_registry_enabled_default=False,
+        requires_feature=FEATURE_COOLING,
     ),
     OchsnerSensorDescription(
         key="cooling_energy_mwh",
@@ -216,7 +244,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfEnergy.MEGA_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        entity_registry_enabled_default=False,
+        requires_feature=FEATURE_COOLING,
     ),
     OchsnerSensorDescription(key="last_error_function_number", offset=41, state_class=None),
     OchsnerSensorDescription(key="last_error_code", offset=42, state_class=None),
@@ -268,6 +296,7 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
         key="auxiliary_heater_switch_cycles",
         ones_offset=27,
         thousands_offset=28,
+        requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
     OchsnerCombinedCounterDescription(
         key="auxiliary_heater_operating_hours",
@@ -275,5 +304,6 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
         thousands_offset=30,
         unit=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
+        requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
 )

@@ -13,6 +13,8 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
 
 from .const import (
     BASE_REGISTER,
+    CONF_HAS_AUXILIARY_HEATER,
+    CONF_HAS_COOLING,
     CONF_SLAVE_ID,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
@@ -29,6 +31,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
             int, vol.Range(min=10, max=3600)
         ),
+        # Gate sensors that could not be verified against real hardware - see
+        # const.py "UNVERIFIED REGISTERS" for why.
+        vol.Optional(CONF_HAS_COOLING, default=False): bool,
+        vol.Optional(CONF_HAS_AUXILIARY_HEATER, default=False): bool,
     }
 )
 

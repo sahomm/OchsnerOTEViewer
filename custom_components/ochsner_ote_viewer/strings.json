@@ -3,12 +3,14 @@
     "step": {
       "user": {
         "title": "Connect to OTE Modbus Gateway",
-        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches.",
+        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet.",
         "data": {
           "host": "Host / IP address",
           "port": "Port",
           "slave_id": "Modbus address (DIP switches 6-9)",
-          "scan_interval": "Poll interval (seconds)"
+          "scan_interval": "Poll interval (seconds)",
+          "has_cooling": "System has an active cooling function",
+          "has_auxiliary_heater": "System has an Ochsner-controlled auxiliary heater (\"Zusatzheizung\")"
         }
       }
     },
@@ -31,7 +33,7 @@
       "suction_gas_pressure": { "name": "Suction gas pressure" },
       "hot_gas_pressure": { "name": "Hot gas pressure" },
       "volume_flow": { "name": "Volume flow" },
-      "compressor_cop": { "name": "Compressor COP (unverified scaling)" },
+      "compressor_cop": { "name": "Compressor COP (instantaneous, only meaningful while running)" },
       "heat_generator_control_status": { "name": "Auxiliary heater control status" },
       "heat_manager_status": { "name": "Heat manager status code" },
       "system_temperature_setpoint": { "name": "System temperature setpoint" },
