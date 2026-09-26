@@ -37,6 +37,22 @@ DOMAIN = "ochsner_ote_viewer"
 CONF_SLAVE_ID = "slave_id"
 CONF_HAS_COOLING = "has_cooling"
 CONF_HAS_AUXILIARY_HEATER = "has_auxiliary_heater"
+# Optional external electricity sensors (e.g. a Shelly 3EM's three per-phase energy
+# entities) used for the lifetime-efficiency sensor instead of Ochsner's own
+# electrical_energy_* registers. Three separate slots rather than one "total" entity
+# because 3-phase meters often only expose per-phase cumulative energy - and at least
+# one popular device (Shelly Pro 3EM) has a known HA-integration bug where its own
+# "total" entity silently mirrors a single phase instead of summing all three
+# (home-assistant/core#155155). We sum whichever slots are filled in ourselves instead
+# of trusting any pre-computed total.
+CONF_EXTERNAL_ENERGY_SENSOR_1 = "external_energy_sensor_1"
+CONF_EXTERNAL_ENERGY_SENSOR_2 = "external_energy_sensor_2"
+CONF_EXTERNAL_ENERGY_SENSOR_3 = "external_energy_sensor_3"
+EXTERNAL_ENERGY_SENSOR_KEYS = (
+    CONF_EXTERNAL_ENERGY_SENSOR_1,
+    CONF_EXTERNAL_ENERGY_SENSOR_2,
+    CONF_EXTERNAL_ENERGY_SENSOR_3,
+)
 
 DEFAULT_PORT = 502
 DEFAULT_SCAN_INTERVAL = 30
