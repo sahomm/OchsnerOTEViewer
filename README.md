@@ -7,6 +7,10 @@ Home Assistant Integration zum Auslesen von OCHSNER-Wärmepumpen mit **OTE-Regle
 
 > **Disclaimer:** Dieses Projekt ist ein privates Community-Projekt und steht in keiner
 > Verbindung zu OCHSNER Wärmepumpen GmbH. Alle Markennamen gehören ihren jeweiligen Inhabern.
+> Das OCHSNER-Logo (`custom_components/ochsner_ote_viewer/brand/`) wird, wie in der
+> Home-Assistant-Community allgemein üblich, ausschließlich zur Identifikation des Produkts
+> verwendet, mit dem diese Integration kommuniziert – ohne Billigung oder Zusammenarbeit zu
+> unterstellen. Quelle: offizielle Vektor-Grafik von ochsner.com.
 
 ## Status
 
