@@ -82,7 +82,9 @@ Details zur genauen Konfiguration (DIP-Schalter, Verkabelung, Netzwerk-Setup) si
 
 Bei der Einrichtung fragt die Integration zusätzlich, ob deine Anlage eine **Kühlfunktion**
 bzw. eine **von Ochsner gesteuerte Zusatzheizung** hat – davon hängt ab, welche Sensoren
-angelegt werden (siehe nächster Abschnitt).
+angelegt werden (siehe nächster Abschnitt). Eine Checkbox "Externe Stromsensoren einrichten"
+führt dich optional zu einer zweiten Seite für die JAZ-/COP-Berechnung (siehe "Nicht
+verifizierte Register" unten) – wer das nicht braucht, lässt sie einfach unangehakt.
 
 ## Nicht verifizierte Register
 
@@ -104,8 +106,9 @@ Zusätzlich braucht dieser Sensor ein Ochsner-seitiges Stromzähler-Zubehör an 
 viele Anlagen (auch die, an der dieses Projekt entstanden ist) nicht haben – dann bleibt
 er dauerhaft "nicht verfügbar", das ist normal.
 
-**Alternative: externer Stromsensor.** Bei der Einrichtung kannst du optional bis zu drei
-bestehende Home-Assistant-Energiesensoren angeben (z. B. die drei Phasen-Sensoren eines
+**Alternative: externer Stromsensor.** Über die Checkbox "Externe Stromsensoren einrichten"
+gelangst du zu einer zweiten Einrichtungsseite, auf der du bis zu drei bestehende
+Home-Assistant-Energiesensoren angeben kannst (z. B. die drei Phasen-Sensoren eines
 Shelly 3EM), die dann statt der Ochsner-eigenen Register für die Effizienzberechnung
 genutzt werden – wir summieren die drei Werte selbst. Das umgeht bewusst die "Total"-Entity
 vieler 3-Phasen-Zähler: Bei Shelly (Pro) 3EM gibt es dafür einen bekannten, noch offenen
@@ -122,14 +125,22 @@ Stromwandlern im Sicherungskasten): Das ist Arbeit an spannungsführenden Leiter
 außerdem darauf, dass der gewählte Sensor wirklich nur den Stromkreis der Wärmepumpe misst,
 nicht den gesamten Haushalt.
 
-**Kompatible Zähler (Auto-Erkennung):** Statt die 6 Felder oben einzeln zu befüllen, kannst du bei der Einrichtung auch nur ein bestehendes Home-Assistant-Gerät auswählen ("Externes 3-Phasen-Zählergerät") – die Integration versucht dann selbst, dessen Energie-/Leistungs-Entities pro Phase zu finden (siehe `meter_profiles.py`). Aktuell unterstützt:
+**Kompatible Zähler (Auto-Erkennung):** Auf der zweiten Einrichtungsseite durchsucht die
+Integration deine Home-Assistant-Installation selbstständig nach bekannten Zählergeräten.
+Wird eines gefunden, erscheint es oben als fertige Auswahl ("Erkanntes Zählergerät") – wählst
+du es aus, werden die 6 Felder darunter automatisch befüllt (`meter_profiles.py`). Es gibt
+bewusst kein offenes "wähl irgendein Gerät"-Feld: das führt schnell zu falschen Treffern,
+siehe [DECISIONS.md](DECISIONS.md). Aktuell unterstützt:
 
 | Gerät | Status |
 |---|---|
 | Shelly 3EM (Gen1), offizielle `shelly`-Integration | ✅ verifiziert |
 | Shelly Pro 3EM (Gen2) und andere Zähler | ❌ noch nicht – Struktur unbekannt, bitte manuell befüllen |
 
-Wird das gewählte Gerät nicht erkannt, erscheint ein Fehler und du füllst stattdessen einfach die 6 Felder manuell aus – das funktioniert unabhängig davon immer. Unterstützung für weitere Zähler lässt sich per PR ergänzen: eine neue `MeterProfile`-Eintrag in `meter_profiles.py` mit einer `resolve()`-Funktion, die aus dem Geräte-/Entity-Registry die passenden Entities findet.
+Wird nichts Bekanntes gefunden, entfällt dieses Feld einfach und du füllst die 6 Felder
+manuell aus – das funktioniert unabhängig davon immer. Unterstützung für weitere Zähler lässt
+sich per PR ergänzen: ein neuer `MeterProfile`-Eintrag in `meter_profiles.py` mit einer
+`resolve()`-Funktion, die aus dem Geräte-/Entity-Registry die passenden Entities findet.
 
 **COP, berechnet (Durchfluss-Methode):** Zusätzlich zum Ochsner-eigenen (undokumentierten)
 "Leistungszahl COP"-Register gibt es einen zweiten, unabhängig berechneten COP-Sensor:
