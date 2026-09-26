@@ -104,6 +104,23 @@ needs an Ochsner-side electricity-meter accessory on the OTE that many installat
 (including the one this project was built against) don't have - it will then permanently
 read "unavailable", which is expected.
 
+**Alternative: external electricity sensor.** During setup you can optionally specify up
+to three existing Home Assistant energy sensors (e.g. a Shelly 3EM's three per-phase
+entities), which are then used instead of Ochsner's own registers for the efficiency
+calculation - we sum the three values ourselves. This deliberately avoids relying on the
+"total" entity many 3-phase meters provide: Shelly (Pro) 3EM has a known, still-open bug in
+Home Assistant's own integration where the "total" energy entity incorrectly mirrors a
+single phase instead of summing all three
+([home-assistant/core#155155](https://github.com/home-assistant/core/issues/155155)) - a
+wrong total would be worse than none at all.
+
+⚠️ **Safety note:** this integration only reads the value of an entity that already exists
+in Home Assistant - it never touches your electrical installation itself. If you're
+**installing new metering hardware** for this purpose (e.g. a Shelly 3EM with current
+transformers in your fuse box): that is work on live mains conductors with a **risk of
+death** - have it installed exclusively by a qualified electrician. Also make sure the
+sensor you pick actually measures the heat pump's own circuit, not your whole household.
+
 ## Contributing
 
 Issues and pull requests are welcome – especially feedback from owners of other OCHSNER

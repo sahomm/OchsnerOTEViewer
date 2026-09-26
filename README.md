@@ -104,6 +104,24 @@ Zusätzlich braucht dieser Sensor ein Ochsner-seitiges Stromzähler-Zubehör an 
 viele Anlagen (auch die, an der dieses Projekt entstanden ist) nicht haben – dann bleibt
 er dauerhaft "nicht verfügbar", das ist normal.
 
+**Alternative: externer Stromsensor.** Bei der Einrichtung kannst du optional bis zu drei
+bestehende Home-Assistant-Energiesensoren angeben (z. B. die drei Phasen-Sensoren eines
+Shelly 3EM), die dann statt der Ochsner-eigenen Register für die Effizienzberechnung
+genutzt werden – wir summieren die drei Werte selbst. Das umgeht bewusst die "Total"-Entity
+vieler 3-Phasen-Zähler: Bei Shelly (Pro) 3EM gibt es dafür einen bekannten, noch offenen
+Fehler in Home Assistants eigener Integration, bei dem die "Total"-Energie fälschlich nur
+eine einzelne Phase widerspiegelt statt alle drei zu summieren
+([home-assistant/core#155155](https://github.com/home-assistant/core/issues/155155)) –
+ein falscher Gesamtwert wäre schlimmer als gar keiner.
+
+⚠️ **Sicherheitshinweis:** Unsere Integration liest dabei nur den Wert einer bereits in
+Home Assistant vorhandenen Entity aus – sie greift nie selbst in deine Elektroinstallation
+ein. Falls du dafür aber **neue Zähler-Hardware nachrüstest** (z. B. einen Shelly 3EM mit
+Stromwandlern im Sicherungskasten): Das ist Arbeit an spannungsführenden Leitern mit
+**Lebensgefahr** – lass das ausschließlich von einer Elektrofachkraft installieren. Achte
+außerdem darauf, dass der gewählte Sensor wirklich nur den Stromkreis der Wärmepumpe misst,
+nicht den gesamten Haushalt.
+
 ## Mitwirken
 
 Issues und Pull Requests sind willkommen – insbesondere Rückmeldungen von Besitzern anderer
