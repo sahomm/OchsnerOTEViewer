@@ -10,6 +10,7 @@ from pymodbus.client import AsyncModbusTcpClient
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
+from homeassistant.helpers import selector
 
 from .const import (
     BASE_REGISTER,
@@ -23,11 +24,20 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Valid Modbus addresses for the OTE-Modbus-Gateway are 11-25 (DIP switch pins 6-9,
+# see HARDWARE_SETUP.md) - not the full 1-247 Modbus range. Rendered explicitly as a
+# NumberSelector in "box" mode so the UI shows a precise text field, not a slider
+# (voluptuous vol.Range on a plain int triggers HA's default slider widget, which is
+# unusable for picking an exact value out of a wide range).
+SLAVE_ID_SELECTOR = selector.NumberSelector(
+    selector.NumberSelectorConfig(min=11, max=25, step=1, mode=selector.NumberSelectorMode.BOX)
+)
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-        vol.Required(CONF_SLAVE_ID): vol.All(int, vol.Range(min=1, max=247)),
+        vol.Required(CONF_SLAVE_ID): vol.All(SLAVE_ID_SELECTOR, vol.Coerce(int)),
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
             int, vol.Range(min=10, max=3600)
         ),
@@ -47,7 +57,7 @@ async def _test_connection(host: str, port: int, slave_id: int) -> None:
         if not client.connected:
             raise CannotConnect
         result = await client.read_holding_registers(
-            address=BASE_REGISTER, count=1, slave=slave_id
+            address=BASE_REGISTER, count=1, device_id=slave_id
         )
         if result.isError():
             raise CannotConnect
