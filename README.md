@@ -10,17 +10,19 @@ Home Assistant Integration zum Auslesen von OCHSNER-Wärmepumpen mit **OTE-Regle
 
 ## Status
 
-🚧 **Frühe Entwicklungsphase.** Aktuell befindet sich dieses Repository im Aufbau der
-Dokumentation. Der eigentliche Integrations-Code folgt als nächster Schritt.
+🚧 **Früher Entwicklungsstand (v0.1) – die Integration existiert und wurde gegen ein
+reales Gateway verifiziert, aber noch nicht in einer laufenden Home-Assistant-Instanz
+End-to-End getestet.**
 
-- **Phase 1 (in Arbeit):** Nur lesende Sensoren (Temperaturen, Status, Energiezähler,
-  Fehlercodes) – kein Schreibzugriff auf die Wärmepumpe.
-- **Phase 2 (zurückgestellt):** Erweiterte Steuerung. Das OTE-Modbus-Gateway erlaubt
-  theoretisch auch Schreibzugriffe (Betriebswahl, Sollwerte), das erfordert aber eine
-  Umstellung des Applikationstyps am Wärmemanager, die laut Ochsner-Dokumentation die
-  eigene Frostschutzfunktion der Anlage aufhebt und die lokale Bedienteil-Umschaltung
-  dauerhaft sperrt. Das wird nur mit expliziter Risikoabwägung angegangen, nicht leichtfertig
-  als "Komfortfeature" ergänzt.
+**Diese Integration bietet aktuell ausschließlich lesenden Zugriff** auf deine
+OCHSNER-Wärmepumpe – Temperaturen, Status, Energiezähler, Betriebsstunden, Fehlercodes.
+Es werden keine Werte geschrieben und keine Einstellungen an der Wärmepumpe verändert.
+
+Eine spätere Erweiterung um Steuerfunktionen ist denkbar, aber bewusst nicht Teil der
+aktuellen Version: Schreibzugriffe über das OTE-Modbus-Gateway setzen eine Umstellung der
+Reglerkonfiguration voraus, die sicherheitsrelevante Schutzfunktionen der Anlage betreffen
+kann. Das würde nur nach sorgfältiger, expliziter Prüfung angegangen – nicht als einfaches
+"Komfortfeature" nebenbei ergänzt.
 
 ## Ist dieses Projekt für dich?
 
@@ -67,7 +69,12 @@ Details zur genauen Konfiguration (DIP-Schalter, Verkabelung, Netzwerk-Setup) si
 
 ## Installation
 
-*Folgt, sobald die Integration selbst verfügbar ist (siehe Status oben).*
+1. In Home Assistant: **HACS → Integrationen → ⋮ (Menü oben rechts) → Benutzerdefinierte Repositories**
+2. `https://github.com/sahomm/OchsnerOTEViewer` eintragen, Kategorie **Integration**
+3. "Ochsner OTE Viewer" in HACS suchen und installieren, danach Home Assistant neu starten
+4. **Einstellungen → Geräte & Dienste → Integration hinzufügen → "Ochsner OTE Viewer"**
+5. Host/IP und Port deines RS485-zu-Ethernet-Gateways eingeben, sowie die Modbus-Adresse
+   deines OTE-Modbus-Gateways (siehe [docs/HARDWARE_SETUP.md](docs/HARDWARE_SETUP.md))
 
 ## Mitwirken
 

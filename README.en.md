@@ -10,17 +10,19 @@ generation** via the official **OTE Modbus Gateway** (TEM ZIF180, eBUS↔Modbus 
 
 ## Status
 
-🚧 **Early development stage.** This repository currently focuses on documentation. The
-actual integration code is the next step.
+🚧 **Early development stage (v0.1) – the integration exists and has been verified
+against a real gateway, but has not yet been end-to-end tested inside a running Home
+Assistant instance.**
 
-- **Phase 1 (in progress):** Read-only sensors (temperatures, status, energy counters,
-  error codes) – no write access to the heat pump.
-- **Phase 2 (on hold):** Extended control. The OTE Modbus Gateway theoretically also allows
-  write access (operating mode, setpoints), but this requires changing the application type
-  on the heat manager, which according to OCHSNER's own documentation disables the system's
-  built-in frost protection and permanently locks out the local control panel's mode switch.
-  This will only be pursued with an explicit risk assessment, not casually added as a
-  "convenience feature".
+**This integration currently provides read-only access** to your OCHSNER heat pump –
+temperatures, status, energy counters, operating hours, error codes. No values are written
+and no settings on the heat pump are changed.
+
+A later extension with control features is conceivable, but deliberately not part of the
+current version: write access via the OTE Modbus Gateway requires changing the controller
+configuration in a way that can affect the system's own safety-relevant protection
+functions. That would only be pursued after careful, explicit review – not casually added
+as a "convenience feature".
 
 ## Is this project for you?
 
@@ -67,7 +69,12 @@ See [docs/HARDWARE_SETUP.en.md](docs/HARDWARE_SETUP.en.md) for exact configurati
 
 ## Installation
 
-*Coming soon, once the integration itself is available (see Status above).*
+1. In Home Assistant: **HACS → Integrations → ⋮ (menu, top right) → Custom repositories**
+2. Add `https://github.com/sahomm/OchsnerOTEViewer`, category **Integration**
+3. Search for "Ochsner OTE Viewer" in HACS and install it, then restart Home Assistant
+4. **Settings → Devices & Services → Add Integration → "Ochsner OTE Viewer"**
+5. Enter the host/IP and port of your RS485-to-Ethernet gateway, and the Modbus address of
+   your OTE Modbus Gateway (see [docs/HARDWARE_SETUP.en.md](docs/HARDWARE_SETUP.en.md))
 
 ## Contributing
 
