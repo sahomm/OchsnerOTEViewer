@@ -1,5 +1,7 @@
 # Hardware-Setup-Guide
 
+🇩🇪 Deutsch | [🇬🇧 English](HARDWARE_SETUP.en.md)
+
 Diese Anleitung begleitet dich von "ich habe ein OTE-Modbus-Gateway verbaut" bis zu
 "Home Assistant kann Werte auslesen". Alle Werte (IP-Adressen, Modbus-Adresse) in den
 Beispielen sind Platzhalter – deine eigenen Werte hängen von deiner DIP-Schalter-Stellung
@@ -19,6 +21,10 @@ und deinem Netzwerk ab.
 Das Gateway sitzt meist im Schaltschrank/Innenteil der Anlage, auf einer Hutschiene, mit
 der Aufschrift "TEM ZIF180" bzw. "eBus-Modbus IF". Es hat einen 10-poligen DIP-Schalter mit
 folgender Belegung (steht auch direkt auf dem Gerätelabel):
+
+![Gateway-Typenschild mit DIP-Switch-Legende](images/01-gateway-label.jpg)
+*So sieht das Gerätelabel aus – rechts oben die DIP-Switch-Legende (Terminator/Address/
+Parity/Baud rate), unten die Klemmenbelegung für ModBus (A/⊥/B) und eBus.*
 
 | Pins | Funktion |
 |---|---|
@@ -76,6 +82,17 @@ Nur relevant, falls das Gateway das letzte/einzige Gerät am RS485-Bus ist (typi
 einer Punkt-zu-Punkt-Verbindung zu einem einzelnen RS485-Master). 1 = Abschlusswiderstand
 aktiv.
 
+### Beispiel: richtig und falsch abgelesen
+
+![DIP-Schalter mit ungültiger Adresse](images/02-dip-switch-example-invalid.jpg)
+*Beispiel eines Werkszustands: Pins 3+4 gesetzt (Baudrate 19200, Parität gleich/even),
+aber alle vier Adress-Pins (6–9) auf OFF – das ist eine **ungültige** Adresse. So ein
+scharfes, frontales Foto solltest du für die eigene Ablesung anstreben.*
+
+![DIP-Schalter mit gültiger Adresse](images/03-dip-switch-example-valid.jpg)
+*Nach dem Setzen von Pin 6 auf ON: gleiche Baudrate/Parität wie oben, jetzt aber eine
+gültige Adresse (11).*
+
 ## ⚠️ Wichtiger Sicherheitshinweis zu DIP-Schalter-Änderungen
 
 Wenn du DIP-Schalter ändern musst: Nach der Änderung muss das Gateway ggf. stromlos
@@ -100,15 +117,26 @@ Verbinde dein RS485-Adapter mit **A→A, B→B**, und wenn dein Adapter eine dri
 Masse/Schirm hat, diese mit der mittleren Klemme (⊥) des Gateways verbinden. Die
 Modbus-Leitung sollte laut Handbuch verdrillt und geschirmt sein (Cat5/6-Kabel eignet sich).
 
+![ModBus-Klemme des Gateways mit Verkabelung](images/04-modbus-terminal-wiring.jpg)
+*Die ModBus-Klemme des OTE-Modbus-Gateways: A, Masse/Schirm (⊥), B.*
+
 Bei Verwendung eines **Waveshare RS232/485/422 TO POE ETH (B)** (oder ähnlichem Gerät mit
 RA/RB/TA/TB-Klemmen): Nutze **TA und TB**, nicht RA/RB – letztere sind nur für echten
 4-Draht-RS422-Betrieb relevant. Die genaue Pin-Zuordnung steht im
 [Waveshare-Wiki, Abschnitt "Hardware Description"](https://www.waveshare.com/wiki/RS232/485/422_TO_POE_ETH_(B)).
 
+![Waveshare-Adapter Rückseite mit Klemmenlegende](images/07-waveshare-poe-terminal-legend.jpg)
+*Die Rückseite des Waveshare-Adapters: VCC/GND/PE/TB/TA/RA/RB. Für RS485 werden nur TA
+(A) und TB (B) benötigt, plus optional PE für die Masse-/Schirm-Referenz.*
+
 ## Schritt 3: Erster Verbindungstest (USB-RS485)
 
 Bevor du irgendetwas in Home Assistant konfigurierst, empfiehlt sich ein reiner
 CLI-Verbindungstest, um Verkabelung/DIP-Konfiguration unabhängig von HA zu verifizieren:
+
+![USB-RS485-Adapter mit Verkabelung](images/05-usb-rs485-adapter-wiring.jpg)
+*USB-RS485-Adapter mit beschrifteten Klemmen B-/A+/GND – hier direkt am Gerät ablesbar,
+welche Ader wohin gehört.*
 
 ```bash
 pip3 install pymodbus pyserial
@@ -139,6 +167,9 @@ Wenn das `1` liefert: Glückwunsch, die Grundkonfiguration stimmt.
 
 Am Beispiel des Waveshare RS232/485/422 TO POE ETH (B):
 
+![Waveshare-Adapter Frontansicht](images/06-waveshare-poe-front.jpg)
+*Der Waveshare RS232/485/422 TO POE ETH (B) – Power/Link/Active-LEDs zur Statusanzeige.*
+
 1. **Werks-IP beachten:** Das Gerät hat werksseitig **keine DHCP-Anfrage aktiv**, sondern
    eine feste Werks-IP (typischerweise `192.168.1.200`, Subnetz `255.255.255.0`). Liegt
    dein Netz in einem anderen Adressbereich, ist das Gerät zunächst nicht erreichbar – das
@@ -160,6 +191,10 @@ Am Beispiel des Waveshare RS232/485/422 TO POE ETH (B):
 5. Nach jeder Änderung: mit einem Verbindungstest verifizieren (siehe unten), nicht blind
    auf die gespeicherten Einstellungen vertrauen – dies ist eine bekannte Einschränkung
    dieses Geräts, wenn man die Web-Oberfläche statt VirCom nutzt.
+
+![Waveshare-Konfiguration im korrekten Endzustand](images/08-waveshare-web-config-final.png)
+*So sollte die Konfigurationsseite am Ende aussehen: Device Port 502, Baud Rate 19200,
+Parity Even, Protocol "Modbus TCP to RTU" (Device-MAC im Bild geschwärzt).*
 
 ```python
 from pymodbus.client import ModbusTcpClient

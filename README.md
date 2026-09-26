@@ -1,5 +1,7 @@
 # OchsnerOTEViewer
 
+🇩🇪 Deutsch | [🇬🇧 English](README.en.md)
+
 Home Assistant Integration zum Auslesen von OCHSNER-Wärmepumpen mit **OTE-Reglergeneration**
 über das offizielle **OTE-Modbus-Gateway** (TEM ZIF180, eBUS↔Modbus RTU).
 
