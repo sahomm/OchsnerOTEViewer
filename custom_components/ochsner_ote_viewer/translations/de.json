@@ -33,7 +33,7 @@
       "suction_gas_pressure": { "name": "Sauggasdruck" },
       "hot_gas_pressure": { "name": "Heißgasdruck" },
       "volume_flow": { "name": "Volumenstrom" },
-      "compressor_cop": { "name": "Leistungszahl COP (Momentanwert, nur bei laufendem Verdichter aussagekräftig)" },
+      "compressor_cop": { "name": "COP" },
       "heat_generator_control_status": { "name": "Status Zusatzheizungsregelung" },
       "heat_manager_status": { "name": "Statuscode Wärmemanager" },
       "system_temperature_setpoint": { "name": "Anlagentemperatur Sollwert" },

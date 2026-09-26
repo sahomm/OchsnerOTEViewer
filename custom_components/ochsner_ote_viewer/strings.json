@@ -33,7 +33,7 @@
       "suction_gas_pressure": { "name": "Suction gas pressure" },
       "hot_gas_pressure": { "name": "Hot gas pressure" },
       "volume_flow": { "name": "Volume flow" },
-      "compressor_cop": { "name": "Compressor COP (instantaneous, only meaningful while running)" },
+      "compressor_cop": { "name": "COP" },
       "heat_generator_control_status": { "name": "Auxiliary heater control status" },
       "heat_manager_status": { "name": "Heat manager status code" },
       "system_temperature_setpoint": { "name": "System temperature setpoint" },
