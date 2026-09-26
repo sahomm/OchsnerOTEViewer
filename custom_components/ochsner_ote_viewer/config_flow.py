@@ -14,6 +14,9 @@ from homeassistant.helpers import selector
 
 from .const import (
     BASE_REGISTER,
+    CONF_EXTERNAL_ENERGY_SENSOR_1,
+    CONF_EXTERNAL_ENERGY_SENSOR_2,
+    CONF_EXTERNAL_ENERGY_SENSOR_3,
     CONF_HAS_AUXILIARY_HEATER,
     CONF_HAS_COOLING,
     CONF_SLAVE_ID,
@@ -33,6 +36,15 @@ SLAVE_ID_SELECTOR = selector.NumberSelector(
     selector.NumberSelectorConfig(min=11, max=25, step=1, mode=selector.NumberSelectorMode.BOX)
 )
 
+# Any existing HA energy sensor can be picked here (Shelly 3EM, another smart meter,
+# an ESPHome CT-clamp sensor, ...) - see const.py for why this is three separate
+# optional slots instead of one "total" field.
+EXTERNAL_ENERGY_SENSOR_SELECTOR = selector.EntitySelector(
+    selector.EntitySelectorConfig(
+        filter=selector.EntityFilterSelectorConfig(domain="sensor", device_class="energy")
+    )
+)
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
@@ -45,6 +57,14 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         # const.py "UNVERIFIED REGISTERS" for why.
         vol.Optional(CONF_HAS_COOLING, default=False): bool,
         vol.Optional(CONF_HAS_AUXILIARY_HEATER, default=False): bool,
+        # Optional: use an external meter (e.g. a Shelly 3EM's per-phase energy
+        # entities) for the lifetime-efficiency sensor instead of Ochsner's own
+        # electrical_energy_* registers, which most installations don't have
+        # populated. Leave empty for a single-phase meter with just one entity;
+        # fill all three for a 3-phase heat pump measured per phase.
+        vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_1): EXTERNAL_ENERGY_SENSOR_SELECTOR,
+        vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_2): EXTERNAL_ENERGY_SENSOR_SELECTOR,
+        vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_3): EXTERNAL_ENERGY_SENSOR_SELECTOR,
     }
 )
 
