@@ -82,7 +82,9 @@ See [HARDWARE_SETUP.en.md](HARDWARE_SETUP.en.md) for exact configuration details
 
 During setup, the integration also asks whether your system has an **active cooling
 function** and/or an **Ochsner-controlled auxiliary heater** - this determines which
-sensors get created (see next section).
+sensors get created (see next section). A "Set up external electricity sensors" checkbox
+optionally takes you to a second page for the SPF/COP calculation (see "Unverified
+registers" below) - leave it unchecked if you don't need that.
 
 ## Unverified registers
 
@@ -104,10 +106,11 @@ needs an Ochsner-side electricity-meter accessory on the OTE that many installat
 (including the one this project was built against) don't have - it will then permanently
 read "unavailable", which is expected.
 
-**Alternative: external electricity sensor.** During setup you can optionally specify up
-to three existing Home Assistant energy sensors (e.g. a Shelly 3EM's three per-phase
-entities), which are then used instead of Ochsner's own registers for the efficiency
-calculation - we sum the three values ourselves. This deliberately avoids relying on the
+**Alternative: external electricity sensor.** The "Set up external electricity sensors"
+checkbox takes you to a second setup page where you can optionally specify up to three
+existing Home Assistant energy sensors (e.g. a Shelly 3EM's three per-phase entities),
+which are then used instead of Ochsner's own registers for the efficiency calculation -
+we sum the three values ourselves. This deliberately avoids relying on the
 "total" entity many 3-phase meters provide: Shelly (Pro) 3EM has a known, still-open bug in
 Home Assistant's own integration where the "total" energy entity incorrectly mirrors a
 single phase instead of summing all three
@@ -121,17 +124,19 @@ transformers in your fuse box): that is work on live mains conductors with a **r
 death** - have it installed exclusively by a qualified electrician. Also make sure the
 sensor you pick actually measures the heat pump's own circuit, not your whole household.
 
-**Compatible meters (auto-detection):** Instead of filling in the 6 fields above by hand, you
-can also just pick an existing Home Assistant device during setup ("External 3-phase meter
-device") - the integration then tries to find its per-phase energy/power entities itself (see
-`meter_profiles.py`). Currently supported:
+**Compatible meters (auto-detection):** On the second setup page, the integration searches
+your Home Assistant installation for known meter devices by itself. If one is found, it
+shows up above as a ready-made choice ("Recognized meter device") - picking it fills in the
+6 fields below automatically (`meter_profiles.py`). There's deliberately no open "pick any
+device" field: that leads to wrong matches quickly, see [DECISIONS.md](DECISIONS.md).
+Currently supported:
 
 | Device | Status |
 |---|---|
 | Shelly 3EM (Gen1), official `shelly` integration | ✅ verified |
 | Shelly Pro 3EM (Gen2) and other meters | ❌ not yet - structure unknown, please fill in manually |
 
-If the selected device isn't recognized, you get an error and simply fill in the 6 fields
+If nothing known is found, this field is simply left out and you fill in the 6 fields
 manually instead - that always works regardless. Support for more meters can be added via PR:
 a new `MeterProfile` entry in `meter_profiles.py` with a `resolve()` function that locates the
 right entities from the device/entity registry.

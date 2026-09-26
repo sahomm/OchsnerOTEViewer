@@ -37,6 +37,11 @@ DOMAIN = "ochsner_ote_viewer"
 CONF_SLAVE_ID = "slave_id"
 CONF_HAS_COOLING = "has_cooling"
 CONF_HAS_AUXILIARY_HEATER = "has_auxiliary_heater"
+# Step-1 checkbox that routes the config flow to the (optional) second step for
+# external electricity sensors - keeps the first-time setup screen focused on the
+# connection basics instead of showing 6+ extra fields to everyone up front. Only
+# used to control config-flow navigation, never stored in the final config entry.
+CONF_CONFIGURE_EXTERNAL_SENSORS = "configure_external_sensors"
 # Optional external electricity sensors (e.g. a Shelly 3EM's three per-phase energy
 # entities) used for the lifetime-efficiency sensor instead of Ochsner's own
 # electrical_energy_* registers. Three separate slots rather than one "total" entity

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to OTE Modbus Gateway",
-        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet. The external electricity/power sensor fields are optional (energy sensors feed the lifetime efficiency/SPF sensor, power sensors feed the real-time computed COP sensor) - see the README before wiring up new metering hardware. Instead of the 6 fields, you can also just pick a recognized meter device (see README \"Compatible meters\").",
+        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet.",
         "data": {
           "host": "Host / IP address",
           "port": "Port",
@@ -11,20 +11,27 @@
           "scan_interval": "Poll interval (seconds)",
           "has_cooling": "System has an active cooling function",
           "has_auxiliary_heater": "System has an Ochsner-controlled auxiliary heater (\"Zusatzheizung\")",
+          "configure_external_sensors": "Set up external electricity sensors (optional, for lifetime efficiency/SPF and computed COP)"
+        }
+      },
+      "external_sensors": {
+        "title": "External electricity sensors",
+        "description": "Ochsner itself usually doesn't provide usable values for this, so this is optional: energy sensors feed the lifetime efficiency/SPF sensor, power sensors feed the real-time computed COP. If a known meter device was found in your Home Assistant installation, you can pick it directly above - the 6 fields below then get filled in automatically. If nothing was found (or your device isn't supported yet, see README \"Compatible meters\"), fill in the 6 fields manually instead. Read the README before wiring up new metering hardware (risk of death when working in the fuse box - only a qualified electrician should do this).",
+        "data": {
+          "external_meter_device": "Recognized meter device (if found)",
           "external_energy_sensor_1": "External electricity sensor, phase 1 (optional)",
           "external_energy_sensor_2": "External electricity sensor, phase 2 (optional)",
           "external_energy_sensor_3": "External electricity sensor, phase 3 (optional)",
           "external_power_sensor_1": "External power sensor, phase 1 (optional)",
           "external_power_sensor_2": "External power sensor, phase 2 (optional)",
-          "external_power_sensor_3": "External power sensor, phase 3 (optional)",
-          "external_meter_device": "External 3-phase meter device (optional, overrides the 6 fields above)"
+          "external_power_sensor_3": "External power sensor, phase 3 (optional)"
         }
       }
     },
     "error": {
       "cannot_connect": "Could not connect or no valid response from the gateway. Check host/port/address and that the RS485 gateway is set to \"Modbus TCP to RTU\" mode.",
       "unknown": "Unexpected error",
-      "meter_not_recognized": "This device is not recognized automatically (currently supported: Shelly 3EM Gen1, see README \"Compatible meters\"). Please fill in the 6 electricity/power sensor fields manually instead, or leave this field empty."
+      "meter_not_recognized": "This device could no longer be found or recognized. Please fill in the 6 electricity/power sensor fields manually instead, or leave this field empty."
     },
     "abort": {
       "already_configured": "This gateway is already configured"
