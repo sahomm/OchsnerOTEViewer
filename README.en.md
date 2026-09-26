@@ -121,6 +121,24 @@ transformers in your fuse box): that is work on live mains conductors with a **r
 death** - have it installed exclusively by a qualified electrician. Also make sure the
 sensor you pick actually measures the heat pump's own circuit, not your whole household.
 
+**Computed COP (flow method):** in addition to Ochsner's own (undocumented) "Leistungszahl
+COP" register, there's a second, independently-computed COP sensor:
+
+```
+Thermal power [kW] = volume flow [L/min] x (flow temp - return temp) [K] x 4.186 / 60
+COP = thermal power / electrical power (from the optional external power sensors)
+```
+
+4.186 kJ/(kg*K) is the specific heat capacity of water - with a water/glycol mix in the
+heating circuit the real value would be slightly lower, which isn't accounted for here.
+This sensor needs the **power sensors** (Watts), not the energy sensors (kWh) above - an
+instantaneous value like COP needs instantaneous power, not energy counters. It's
+deliberately a **separate, additional** sensor, not a replacement for the Ochsner register -
+comparing the two over the coming heating season is the point, to work out what that
+undocumented register actually represents. The "Heating capacity, Ochsner register (raw,
+undocumented unit)" sensor is enabled by default for exactly this reason, so Home
+Assistant's long-term statistics start tracking its history from now on.
+
 ## Contributing
 
 Issues and pull requests are welcome – especially feedback from owners of other OCHSNER

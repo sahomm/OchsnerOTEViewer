@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Verbindung zum OTE-Modbus-Gateway",
-        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt. Die Kühlung-/Zusatzheizung-Optionen unten bestimmen, welche Sensoren angelegt werden – im Zweifel deaktiviert lassen, diese Register wurden noch nicht gegen echte Hardware verifiziert. Die Felder für externe Stromsensoren sind optional und nur für den Effizienz(JAZ)-Sensor nötig – lies vor dem Nachrüsten neuer Zähler-Hardware das README.",
+        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt. Die Kühlung-/Zusatzheizung-Optionen unten bestimmen, welche Sensoren angelegt werden – im Zweifel deaktiviert lassen, diese Register wurden noch nicht gegen echte Hardware verifiziert. Die Felder für externe Strom-/Leistungssensoren sind optional (Stromzähler-Sensoren speisen den Lebenszeit-Effizienz/JAZ-Sensor, Leistungssensoren den berechneten Echtzeit-COP) – lies vor dem Nachrüsten neuer Zähler-Hardware das README.",
         "data": {
           "host": "Host / IP-Adresse",
           "port": "Port",
@@ -11,9 +11,12 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "has_cooling": "Anlage hat eine aktive Kühlfunktion",
           "has_auxiliary_heater": "Anlage hat eine von Ochsner gesteuerte Zusatzheizung",
-          "external_energy_sensor_1": "Externer Stromsensor, Phase 1 (optional)",
-          "external_energy_sensor_2": "Externer Stromsensor, Phase 2 (optional)",
-          "external_energy_sensor_3": "Externer Stromsensor, Phase 3 (optional)"
+          "external_energy_sensor_1": "Externer Stromzähler-Sensor, Phase 1 (optional)",
+          "external_energy_sensor_2": "Externer Stromzähler-Sensor, Phase 2 (optional)",
+          "external_energy_sensor_3": "Externer Stromzähler-Sensor, Phase 3 (optional)",
+          "external_power_sensor_1": "Externer Leistungssensor, Phase 1 (optional)",
+          "external_power_sensor_2": "Externer Leistungssensor, Phase 2 (optional)",
+          "external_power_sensor_3": "Externer Leistungssensor, Phase 3 (optional)"
         }
       }
     },
@@ -41,7 +44,7 @@
       "heat_manager_status": { "name": "Statuscode Wärmemanager" },
       "system_temperature_setpoint": { "name": "Anlagentemperatur Sollwert" },
       "system_temperature": { "name": "Anlagentemperatur" },
-      "heating_capacity": { "name": "Heizleistung (roh, Einheit undokumentiert)" },
+      "heating_capacity": { "name": "Heizleistung, Ochsner-Register (roh, Einheit undokumentiert)" },
       "buffer_temperature_top": { "name": "Puffertemperatur oben (TPO)" },
       "buffer_temperature_middle": { "name": "Puffertemperatur Mitte" },
       "cooling_buffer_temperature_middle": { "name": "Kühlpuffertemperatur Mitte" },
@@ -59,7 +62,8 @@
       "heat_pump_operating_hours": { "name": "Betriebsstunden Wärmepumpe" },
       "auxiliary_heater_switch_cycles": { "name": "Schaltzyklen Zusatzheizung" },
       "auxiliary_heater_operating_hours": { "name": "Betriebsstunden Zusatzheizung" },
-      "lifetime_efficiency_jaz": { "name": "Effizienz seit Inbetriebnahme (Jahresarbeitszahl/JAZ)" }
+      "lifetime_efficiency_jaz": { "name": "Effizienz seit Inbetriebnahme (Jahresarbeitszahl/JAZ)" },
+      "computed_cop_flow_method": { "name": "COP, berechnet (Durchfluss-Methode)" }
     }
   }
 }

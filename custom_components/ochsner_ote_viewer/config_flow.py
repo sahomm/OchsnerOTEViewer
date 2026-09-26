@@ -17,6 +17,9 @@ from .const import (
     CONF_EXTERNAL_ENERGY_SENSOR_1,
     CONF_EXTERNAL_ENERGY_SENSOR_2,
     CONF_EXTERNAL_ENERGY_SENSOR_3,
+    CONF_EXTERNAL_POWER_SENSOR_1,
+    CONF_EXTERNAL_POWER_SENSOR_2,
+    CONF_EXTERNAL_POWER_SENSOR_3,
     CONF_HAS_AUXILIARY_HEATER,
     CONF_HAS_COOLING,
     CONF_SLAVE_ID,
@@ -45,6 +48,14 @@ EXTERNAL_ENERGY_SENSOR_SELECTOR = selector.EntitySelector(
     )
 )
 
+# Instantaneous power (W) counterpart, for the real-time flow-method COP sensor - see
+# const.py CONF_EXTERNAL_POWER_SENSOR_1/2/3.
+EXTERNAL_POWER_SENSOR_SELECTOR = selector.EntitySelector(
+    selector.EntitySelectorConfig(
+        filter=selector.EntityFilterSelectorConfig(domain="sensor", device_class="power")
+    )
+)
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
@@ -65,6 +76,12 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_1): EXTERNAL_ENERGY_SENSOR_SELECTOR,
         vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_2): EXTERNAL_ENERGY_SENSOR_SELECTOR,
         vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_3): EXTERNAL_ENERGY_SENSOR_SELECTOR,
+        # Optional: real-time power sensors (W), for the independently-computed
+        # flow-method COP sensor. Separate from the energy sensors above (kWh, used for
+        # the lifetime JAZ/SPF sensor) - a power ratio needs power inputs.
+        vol.Optional(CONF_EXTERNAL_POWER_SENSOR_1): EXTERNAL_POWER_SENSOR_SELECTOR,
+        vol.Optional(CONF_EXTERNAL_POWER_SENSOR_2): EXTERNAL_POWER_SENSOR_SELECTOR,
+        vol.Optional(CONF_EXTERNAL_POWER_SENSOR_3): EXTERNAL_POWER_SENSOR_SELECTOR,
     }
 )
 

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to OTE Modbus Gateway",
-        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet. The external electricity sensor fields are optional and only needed for the efficiency (SPF) sensor - see the README before wiring up new metering hardware.",
+        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches. The cooling/auxiliary-heater options below control which sensors get created - leave them off if unsure, those registers have not been verified against real hardware yet. The external electricity/power sensor fields are optional (energy sensors feed the lifetime efficiency/SPF sensor, power sensors feed the real-time computed COP sensor) - see the README before wiring up new metering hardware.",
         "data": {
           "host": "Host / IP address",
           "port": "Port",
@@ -13,7 +13,10 @@
           "has_auxiliary_heater": "System has an Ochsner-controlled auxiliary heater (\"Zusatzheizung\")",
           "external_energy_sensor_1": "External electricity sensor, phase 1 (optional)",
           "external_energy_sensor_2": "External electricity sensor, phase 2 (optional)",
-          "external_energy_sensor_3": "External electricity sensor, phase 3 (optional)"
+          "external_energy_sensor_3": "External electricity sensor, phase 3 (optional)",
+          "external_power_sensor_1": "External power sensor, phase 1 (optional)",
+          "external_power_sensor_2": "External power sensor, phase 2 (optional)",
+          "external_power_sensor_3": "External power sensor, phase 3 (optional)"
         }
       }
     },
@@ -41,7 +44,7 @@
       "heat_manager_status": { "name": "Heat manager status code" },
       "system_temperature_setpoint": { "name": "System temperature setpoint" },
       "system_temperature": { "name": "System temperature" },
-      "heating_capacity": { "name": "Heating capacity (raw, undocumented unit)" },
+      "heating_capacity": { "name": "Heating capacity, Ochsner register (raw, undocumented unit)" },
       "buffer_temperature_top": { "name": "Buffer temperature top (TPO)" },
       "buffer_temperature_middle": { "name": "Buffer temperature middle" },
       "cooling_buffer_temperature_middle": { "name": "Cooling buffer temperature middle" },
@@ -59,7 +62,8 @@
       "heat_pump_operating_hours": { "name": "Heat pump operating hours" },
       "auxiliary_heater_switch_cycles": { "name": "Auxiliary heater switch cycles" },
       "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" },
-      "lifetime_efficiency_jaz": { "name": "Efficiency since commissioning (seasonal performance factor/SPF)" }
+      "lifetime_efficiency_jaz": { "name": "Efficiency since commissioning (seasonal performance factor/SPF)" },
+      "computed_cop_flow_method": { "name": "COP, computed (flow method)" }
     }
   }
 }
