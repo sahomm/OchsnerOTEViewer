@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbindung zum OTE-Modbus-Gateway",
+        "description": "Gib die Netzwerkadresse deines RS485-zu-Ethernet-Gateways ein (z. B. Waveshare RS232/485/422 TO POE ETH (B)) sowie die Modbus-Adresse deines Ochsner OTE-Modbus-Gateways (TEM ZIF180), wie über dessen DIP-Schalter eingestellt.",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "port": "Port",
+          "slave_id": "Modbus-Adresse (DIP-Schalter 6-9)",
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen oder keine gültige Antwort vom Gateway. Prüfe Host/Port/Adresse und ob das RS485-Gateway auf \"Modbus TCP to RTU\" eingestellt ist.",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Dieses Gateway ist bereits eingerichtet"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "outdoor_temperature": { "name": "Außentemperatur" },
+      "heat_pump_status": { "name": "Statuscode Wärmepumpe" },
+      "heat_generator_flow_temperature": { "name": "Vorlauftemperatur Wärmeerzeuger" },
+      "heat_generator_return_temperature": { "name": "Rücklauftemperatur Wärmeerzeuger (TWR)" },
+      "heat_source_outlet_temperature": { "name": "Wärmequelle Austrittstemperatur" },
+      "heat_source_inlet_temperature": { "name": "Wärmequelle Eintrittstemperatur" },
+      "suction_gas_pressure": { "name": "Sauggasdruck" },
+      "hot_gas_pressure": { "name": "Heißgasdruck" },
+      "volume_flow": { "name": "Volumenstrom" },
+      "compressor_cop": { "name": "Leistungszahl COP (Skalierung unverifiziert)" },
+      "heat_generator_control_status": { "name": "Status Zusatzheizungsregelung" },
+      "heat_manager_status": { "name": "Statuscode Wärmemanager" },
+      "system_temperature_setpoint": { "name": "Anlagentemperatur Sollwert" },
+      "system_temperature": { "name": "Anlagentemperatur" },
+      "heating_capacity": { "name": "Heizleistung (roh, Einheit undokumentiert)" },
+      "buffer_temperature_top": { "name": "Puffertemperatur oben (TPO)" },
+      "buffer_temperature_middle": { "name": "Puffertemperatur Mitte" },
+      "cooling_buffer_temperature_middle": { "name": "Kühlpuffertemperatur Mitte" },
+      "cooling_buffer_temperature_bottom": { "name": "Kühlpuffertemperatur unten (TPU)" },
+      "cooling_energy_kwh": { "name": "Kühlenergie (kWh)" },
+      "cooling_energy_mwh": { "name": "Kühlenergie (MWh)" },
+      "last_error_function_number": { "name": "Letzte Fehler-Funktionsnummer" },
+      "last_error_code": { "name": "Letzter Fehlercode" },
+      "heat_pump_state_code": { "name": "Statuscode WP" },
+      "heating_energy_kwh": { "name": "Heizenergie (kWh)" },
+      "heating_energy_mwh": { "name": "Heizenergie (MWh)" },
+      "electrical_energy_kwh": { "name": "Elektrische Energie (kWh)" },
+      "electrical_energy_mwh": { "name": "Elektrische Energie (MWh)" },
+      "heat_pump_switch_cycles": { "name": "Schaltzyklen Wärmepumpe" },
+      "heat_pump_operating_hours": { "name": "Betriebsstunden Wärmepumpe" },
+      "auxiliary_heater_switch_cycles": { "name": "Schaltzyklen Zusatzheizung" },
+      "auxiliary_heater_operating_hours": { "name": "Betriebsstunden Zusatzheizung" }
+    }
+  }
+}

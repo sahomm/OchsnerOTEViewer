@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to OTE Modbus Gateway",
+        "description": "Enter the network address of your RS485-to-Ethernet gateway (e.g. Waveshare RS232/485/422 TO POE ETH (B)) and the Modbus address of your Ochsner OTE Modbus Gateway (TEM ZIF180), as set via its DIP switches.",
+        "data": {
+          "host": "Host / IP address",
+          "port": "Port",
+          "slave_id": "Modbus address (DIP switches 6-9)",
+          "scan_interval": "Poll interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect or no valid response from the gateway. Check host/port/address and that the RS485 gateway is set to \"Modbus TCP to RTU\" mode.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "outdoor_temperature": { "name": "Outdoor temperature" },
+      "heat_pump_status": { "name": "Heat pump status code" },
+      "heat_generator_flow_temperature": { "name": "Heat generator flow temperature" },
+      "heat_generator_return_temperature": { "name": "Heat generator return temperature (TWR)" },
+      "heat_source_outlet_temperature": { "name": "Heat source outlet temperature" },
+      "heat_source_inlet_temperature": { "name": "Heat source inlet temperature" },
+      "suction_gas_pressure": { "name": "Suction gas pressure" },
+      "hot_gas_pressure": { "name": "Hot gas pressure" },
+      "volume_flow": { "name": "Volume flow" },
+      "compressor_cop": { "name": "Compressor COP (unverified scaling)" },
+      "heat_generator_control_status": { "name": "Auxiliary heater control status" },
+      "heat_manager_status": { "name": "Heat manager status code" },
+      "system_temperature_setpoint": { "name": "System temperature setpoint" },
+      "system_temperature": { "name": "System temperature" },
+      "heating_capacity": { "name": "Heating capacity (raw, undocumented unit)" },
+      "buffer_temperature_top": { "name": "Buffer temperature top (TPO)" },
+      "buffer_temperature_middle": { "name": "Buffer temperature middle" },
+      "cooling_buffer_temperature_middle": { "name": "Cooling buffer temperature middle" },
+      "cooling_buffer_temperature_bottom": { "name": "Cooling buffer temperature bottom (TPU)" },
+      "cooling_energy_kwh": { "name": "Cooling energy (kWh)" },
+      "cooling_energy_mwh": { "name": "Cooling energy (MWh)" },
+      "last_error_function_number": { "name": "Last error function number" },
+      "last_error_code": { "name": "Last error code" },
+      "heat_pump_state_code": { "name": "Heat pump state code" },
+      "heating_energy_kwh": { "name": "Heating energy (kWh)" },
+      "heating_energy_mwh": { "name": "Heating energy (MWh)" },
+      "electrical_energy_kwh": { "name": "Electrical energy (kWh)" },
+      "electrical_energy_mwh": { "name": "Electrical energy (MWh)" },
+      "heat_pump_switch_cycles": { "name": "Heat pump switch cycles" },
+      "heat_pump_operating_hours": { "name": "Heat pump operating hours" },
+      "auxiliary_heater_switch_cycles": { "name": "Auxiliary heater switch cycles" },
+      "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" }
+    }
+  }
+}
