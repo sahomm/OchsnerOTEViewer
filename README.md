@@ -177,9 +177,38 @@ Division kurzzeitig einen sinnlosen Ausreißer liefern (beobachtet: COP 167 wäh
 Abschaltvorgangs). Er ist bewusst
 ein **eigener, zusätzlicher** Sensor, kein Ersatz für das Ochsner-Register – über die
 kommende Heizsaison lassen sich beide vergleichen, um herauszufinden, was das undokumentierte
-Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, Einheit
-undokumentiert)" ist dafür standardmäßig aktiviert, damit Home Assistants Langzeitstatistik
-seinen Verlauf ab sofort mitschreibt.
+Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, unverifiziert)" ist
+dafür standardmäßig aktiviert (aber ausgeblendet, siehe nächster Abschnitt), damit Home
+Assistants Langzeitstatistik seinen Verlauf ab sofort mitschreibt.
+
+## Sensor-Organisation
+
+Bei ~27 Sensoren pro Wärmepumpe lohnt sich eine Sortierung. Home Assistants Geräteseite
+erlaubt keine frei benennbaren Themen-Überschriften, aber eine eingebaute Aufteilung in
+**Sensoren** (alltagsrelevant, oben) und **Diagnose** (technisch, eigener eingeklappter
+Block – Statuscodes, Kältekreis-Drücke, Fehlercodes, Verschleiß-Zähler wie Betriebsstunden/
+Schaltzyklen). Alle Sensoren bleiben dabei aktiv und schreiben normal Verlauf/Statistik, sie
+sind nur visuell gruppiert.
+
+Zwei Sensoren sind zusätzlich standardmäßig **ausgeblendet** (nicht deaktiviert – sie laufen
+im Hintergrund weiter mit, für die geplante Korrelations-Analyse über die Heizsaison), weil
+ihr Rohwert für sich genommen eher verwirrt als hilft:
+
+- **"COP (Ochsner-Register, unverifiziert)"** – per Home-Assistant-Verlauf bestätigt (nicht
+  vermutet): Dieses Register hielt über einen kompletten Zyklus Leerlauf → Kompressor läuft →
+  Leerlauf denselben Wert (25,5). Es reagiert also nicht live auf den tatsächlichen Betrieb,
+  wie es der Name nahelegt – warum, ist offen (z. B. ein selten aktualisierter interner
+  Parameter oder ein fester Auslegungswert statt einer Messung).
+- **"Heizleistung (roh, unverifiziert)"** – zeigt Werte wie "-100", die ohne Kontext nicht
+  einzuordnen sind.
+
+Ausgeblendete Sensoren lassen sich jederzeit über die Entity-Einstellungen wieder sichtbar
+machen. Bei den beiden berechneten Kern-Sensoren (JAZ, COP berechnet) sowie bei Zähler- und
+Statuscode-Namen wird das gängige Kürzel vorangestellt und die ausführliche Beschreibung
+dahinter in Klammern ergänzt (z. B. "JAZ (Effizienz seit erster Messung)"). Eine
+Hover-Tooltip-Erklärung, wie sie mancher sich vielleicht wünscht, unterstützt Home Assistants
+Standardoberfläche für einzelne Entities aktuell nicht – der Name ist das einzige, worüber
+eine Integration das direkt beeinflussen kann.
 
 ## Mitwirken
 

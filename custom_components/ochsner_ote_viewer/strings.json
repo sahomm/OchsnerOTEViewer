@@ -56,12 +56,12 @@
       "suction_gas_pressure": { "name": "Suction gas pressure" },
       "hot_gas_pressure": { "name": "Hot gas pressure" },
       "volume_flow": { "name": "Volume flow" },
-      "compressor_cop": { "name": "COP" },
+      "compressor_cop": { "name": "COP (Ochsner register, unverified)" },
       "heat_generator_control_status": { "name": "Auxiliary heater control status" },
       "heat_manager_status": { "name": "Heat manager status code" },
       "system_temperature_setpoint": { "name": "System temperature setpoint" },
       "system_temperature": { "name": "System temperature" },
-      "heating_capacity": { "name": "Heating capacity, Ochsner register (raw, undocumented unit)" },
+      "heating_capacity": { "name": "Heating capacity (raw, unverified)" },
       "buffer_temperature_top": { "name": "Buffer temperature top (TPO)" },
       "buffer_temperature_middle": { "name": "Buffer temperature middle" },
       "cooling_buffer_temperature_middle": { "name": "Cooling buffer temperature middle" },
@@ -79,8 +79,8 @@
       "heat_pump_operating_hours": { "name": "Heat pump operating hours" },
       "auxiliary_heater_switch_cycles": { "name": "Auxiliary heater switch cycles" },
       "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" },
-      "lifetime_efficiency_jaz": { "name": "Efficiency since first measurement (seasonal performance factor/SPF)" },
-      "computed_cop_flow_method": { "name": "COP, computed (flow method)" }
+      "lifetime_efficiency_jaz": { "name": "SPF (efficiency since first measurement)" },
+      "computed_cop_flow_method": { "name": "COP (computed, flow method)" }
     }
   }
 }

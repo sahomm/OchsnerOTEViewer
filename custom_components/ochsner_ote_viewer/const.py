@@ -25,6 +25,7 @@ from dataclasses import dataclass
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
+    EntityCategory,
     UnitOfEnergy,
     UnitOfPressure,
     UnitOfTemperature,
@@ -122,6 +123,17 @@ class OchsnerSensorDescription:
     device_class: SensorDeviceClass | None = None
     state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
     entity_registry_enabled_default: bool = True
+    # Groups technical/maintenance values (status codes, pressures, error codes, raw
+    # unverified registers) into HA's collapsed "Diagnose" section on the device page,
+    # instead of the flat alphabetical list everything defaulted to before - see
+    # README for the reasoning behind each choice.
+    entity_category: EntityCategory | None = None
+    # False only for registers that are actively misleading to look at directly (e.g.
+    # a raw "-100" or a COP that never changes) but still needed enabled+recorded for
+    # this project's own long-term correlation analysis - see compressor_cop and
+    # heating_capacity below. Entities stay enabled/hidden, not disabled: history and
+    # long-term statistics keep accumulating, they're just not shown by default.
+    entity_registry_visible_default: bool = True
     # If set, this sensor is only created when the user enabled the matching feature
     # during setup (has_cooling / has_auxiliary_heater). See the module note above
     # "UNVERIFIED REGISTERS" for why this exists.
@@ -149,6 +161,7 @@ class OchsnerCombinedCounterDescription:
     unit: str | None = None
     device_class: SensorDeviceClass | None = None
     state_class: SensorStateClass | None = SensorStateClass.TOTAL_INCREASING
+    entity_category: EntityCategory | None = None
     requires_feature: str | None = None
 
 
@@ -167,7 +180,12 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
     ),
-    OchsnerSensorDescription(key="heat_pump_status", offset=13, state_class=None),
+    OchsnerSensorDescription(
+        key="heat_pump_status",
+        offset=13,
+        state_class=None,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     OchsnerSensorDescription(
         key="heat_generator_flow_temperature",
         offset=14,
@@ -206,6 +224,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         scale=0.1,
         unit=UnitOfPressure.BAR,
         device_class=SensorDeviceClass.PRESSURE,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     OchsnerSensorDescription(
         key="hot_gas_pressure",
@@ -213,6 +232,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         scale=0.1,
         unit=UnitOfPressure.BAR,
         device_class=SensorDeviceClass.PRESSURE,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     OchsnerSensorDescription(
         key="volume_flow",
@@ -221,21 +241,35 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
     ),
-    # Instantaneous COP. Only meaningful while the compressor is actually running
-    # (heat_pump_status != 0) - while idle, this register can hold a stale/undefined
-    # value (observed: 25.5 during idle, physically implausible as an instant COP).
+    # Confirmed via HA history (2026-09-27), not just guessed: this register held the
+    # exact same value (25.5) across an entire idle -> compressor running -> idle
+    # cycle - it does not track live/instantaneous compressor operation the way its
+    # name suggests, at least not on the timescale we've observed it. Whether that's a
+    # slow-updating internal parameter, a fixed rated/design value, or something else
+    # entirely is unknown - not guessed at further here. Hidden by default (not
+    # disabled) so it doesn't mislead users into treating it as a live COP reading,
+    # while staying enabled/recorded for comparison against computed_cop_flow_method
+    # over the coming heating season (see that sensor's own comment).
     OchsnerSensorDescription(
         key="compressor_cop",
         offset=21,
         scale=0.1,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_visible_default=False,
     ),
     OchsnerSensorDescription(
         key="heat_generator_control_status",
         offset=26,
         state_class=None,
+        entity_category=EntityCategory.DIAGNOSTIC,
         requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
-    OchsnerSensorDescription(key="heat_manager_status", offset=31, state_class=None),
+    OchsnerSensorDescription(
+        key="heat_manager_status",
+        offset=31,
+        state_class=None,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     OchsnerSensorDescription(
         key="system_temperature_setpoint",
         offset=32,
@@ -254,12 +288,16 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
     # Enabled by default (unlike other "undocumented unit" fields) so its history
     # accumulates in HA's long-term statistics from now on - the plan is to correlate it
     # against computed_cop_flow_method's independently-derived thermal power over a full
-    # heating season to work out what this register actually represents.
+    # heating season to work out what this register actually represents. Hidden by
+    # default (not disabled) since a raw, sign-flipping, unverified-unit value like
+    # "-100" is actively confusing to look at directly - it keeps recording either way.
     OchsnerSensorDescription(
         key="heating_capacity",
         offset=34,
         scale=0.1,
         signed=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_visible_default=False,
     ),
     OchsnerSensorDescription(
         key="buffer_temperature_top",
@@ -311,9 +349,24 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
         requires_feature=FEATURE_COOLING,
     ),
-    OchsnerSensorDescription(key="last_error_function_number", offset=41, state_class=None),
-    OchsnerSensorDescription(key="last_error_code", offset=42, state_class=None),
-    OchsnerSensorDescription(key="heat_pump_state_code", offset=45, state_class=None),
+    OchsnerSensorDescription(
+        key="last_error_function_number",
+        offset=41,
+        state_class=None,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    OchsnerSensorDescription(
+        key="last_error_code",
+        offset=42,
+        state_class=None,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    OchsnerSensorDescription(
+        key="heat_pump_state_code",
+        offset=45,
+        state_class=None,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     OchsnerSensorDescription(
         key="heating_energy_kwh",
         offset=47,
@@ -349,6 +402,7 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
         key="heat_pump_switch_cycles",
         ones_offset=22,
         thousands_offset=23,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     OchsnerCombinedCounterDescription(
         key="heat_pump_operating_hours",
@@ -356,11 +410,13 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
         thousands_offset=25,
         unit=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     OchsnerCombinedCounterDescription(
         key="auxiliary_heater_switch_cycles",
         ones_offset=27,
         thousands_offset=28,
+        entity_category=EntityCategory.DIAGNOSTIC,
         requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
     OchsnerCombinedCounterDescription(
@@ -369,6 +425,7 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
         thousands_offset=30,
         unit=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
+        entity_category=EntityCategory.DIAGNOSTIC,
         requires_feature=FEATURE_AUXILIARY_HEATER,
     ),
 )
