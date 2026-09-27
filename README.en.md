@@ -165,7 +165,11 @@ COP = thermal power / electrical power (from the optional external power sensors
 4.186 kJ/(kg*K) is the specific heat capacity of water - with a water/glycol mix in the
 heating circuit the real value would be slightly lower, which isn't accounted for here.
 This sensor needs the **power sensors** (Watts), not the energy sensors (kWh) above - an
-instantaneous value like COP needs instantaneous power, not energy counters. It's
+instantaneous value like COP needs instantaneous power, not energy counters. It's only
+computed while the heat pump status code shows "running" - right as the compressor shuts
+off, electrical draw drops to near 0 almost instantly while flow and temperature spread are
+still trailing off from pump/water inertia; without this guard the division would briefly
+spike to a meaningless value (observed: a COP of 167 during a shutdown transient). It's
 deliberately a **separate, additional** sensor, not a replacement for the Ochsner register -
 comparing the two over the coming heating season is the point, to work out what that
 undocumented register actually represents. The "Heating capacity, Ochsner register (raw,

@@ -49,6 +49,11 @@ _POWER_UNIT_TO_KW = {
 # building/buffer side) is expected to be plain water on most installations.
 _WATER_SPECIFIC_HEAT_KJ_PER_KG_K = 4.186
 
+# Observed value of heat_pump_status ("Statuscode Wärmepumpe") while the compressor is
+# actually running. Only empirically observed (0 = idle, 1 = running) - other values
+# are possible but unobserved on this system; see const.py's SENSORS description.
+_HEAT_PUMP_STATUS_RUNNING = 1
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -221,7 +226,18 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         spread x specific heat of water, divided by real electrical power from the
         configured external power sensors. Requires those power sensors to be
         configured (there is no Ochsner-native instantaneous power register to fall
-        back to) and the pump to actually be circulating."""
+        back to) and the pump to actually be circulating.
+
+        Also requires heat_pump_status to confirm the compressor is actually running -
+        observed in practice: right as the compressor shuts off, electrical draw drops
+        to ~0 almost instantly while flow/temperature spread are still trailing off
+        from pump/thermal inertia, which briefly divides a real (small) thermal power
+        by a near-zero electrical power and spikes this ratio to a meaningless value
+        (seen: COP=167 during a shutdown transient). Gating on the status code avoids
+        that transient entirely instead of guessing a flow/power threshold."""
+        if data.get("heat_pump_status") != _HEAT_PUMP_STATUS_RUNNING:
+            return None
+
         electrical_kw = self._sum_external_sensors(
             self._external_power_entity_ids, _POWER_UNIT_TO_KW
         )
