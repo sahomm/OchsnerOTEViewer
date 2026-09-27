@@ -169,7 +169,12 @@ COP = Wärmeleistung ÷ elektrische Leistung (aus optionalen externen Leistungss
 4,186 kJ/(kg·K) ist die spezifische Wärmekapazität von Wasser – bei einem Wasser-Glykol-
 Gemisch im Heizkreis wäre der reale Wert etwas niedriger, das ist hier nicht berücksichtigt.
 Dieser Sensor braucht die **Leistungssensoren** (Watt), nicht die Energiesensoren (kWh) von
-oben – ein Momentanwert wie COP braucht Momentanleistung, keine Energiezähler. Er ist bewusst
+oben – ein Momentanwert wie COP braucht Momentanleistung, keine Energiezähler. Berechnet wird
+nur, während der Statuscode Wärmepumpe "läuft" anzeigt – direkt beim Abschalten fällt die
+elektrische Leistung fast augenblicklich auf 0, während Durchfluss und Temperaturspreizung
+durch die Trägheit von Wasser/Pumpe noch kurz nachlaufen; ohne diese Absicherung würde die
+Division kurzzeitig einen sinnlosen Ausreißer liefern (beobachtet: COP 167 während eines
+Abschaltvorgangs). Er ist bewusst
 ein **eigener, zusätzlicher** Sensor, kein Ersatz für das Ochsner-Register – über die
 kommende Heizsaison lassen sich beide vergleichen, um herauszufinden, was das undokumentierte
 Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, Einheit
