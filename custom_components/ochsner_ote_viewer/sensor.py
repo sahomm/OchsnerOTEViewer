@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -12,6 +13,7 @@ from .const import (
     COMBINED_COUNTERS,
     CONF_HAS_AUXILIARY_HEATER,
     CONF_HAS_COOLING,
+    CONF_SLAVE_ID,
     DERIVED_SENSORS,
     DOMAIN,
     FEATURE_AUXILIARY_HEATER,
@@ -20,6 +22,7 @@ from .const import (
     OchsnerCombinedCounterDescription,
     OchsnerDerivedSensorDescription,
     OchsnerSensorDescription,
+    build_connection_id,
 )
 from .coordinator import OchsnerOteViewerCoordinator
 
@@ -60,11 +63,19 @@ class _OchsnerBaseSensor(CoordinatorEntity[OchsnerOteViewerCoordinator], SensorE
 
     def __init__(self, coordinator: OchsnerOteViewerCoordinator, entry: ConfigEntry, key: str) -> None:
         super().__init__(coordinator)
+        # Built from the stable connection details (same formula as the config entry's
+        # own unique_id in config_flow.py), not entry.entry_id - entry_id is randomly
+        # regenerated every time the integration is removed and re-added, which would
+        # silently orphan every entity's history/long-term statistics on that occasion
+        # even though nothing about the physical device changed. See DECISIONS.md.
+        connection_id = build_connection_id(
+            entry.data[CONF_HOST], entry.data[CONF_PORT], entry.data[CONF_SLAVE_ID]
+        )
         self._key = key
         self._attr_translation_key = key
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_unique_id = f"{connection_id}_{key}"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
+            identifiers={(DOMAIN, connection_id)},
             name="Ochsner Wärmepumpe",
             manufacturer="Ochsner",
             model="OTE-Modbus-Gateway (TEM ZIF180)",

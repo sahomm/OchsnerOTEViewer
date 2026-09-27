@@ -15,6 +15,17 @@ This project was built by [sahomm](https://github.com/sahomm) with the help of C
 > integration communicates with - without implying endorsement or partnership. Source:
 > official vector artwork from ochsner.com.
 
+## Upgrade note (as of v0.11.0)
+
+⚠️ Had an older version installed already (before v0.11.0)? This version changes how
+sensors are internally identified (stable connection details instead of a random internal
+ID) - necessary so a future remove+re-add of the integration no longer orphans the entire
+history. As a one-time transition: after updating to v0.11.0, please **remove the
+integration once and re-add it with the same connection details** (Devices & Services →
+Ochsner OTE Viewer → Delete, then add again) - otherwise you'll get duplicate entities (old,
+orphaned ones plus new ones). From that point on, history survives future remove+re-add
+cycles as long as host/port/Modbus address stay the same.
+
 ## Status
 
 🚧 **Early development stage (v0.1) – the integration exists and has been verified

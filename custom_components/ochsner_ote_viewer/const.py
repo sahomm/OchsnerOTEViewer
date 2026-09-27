@@ -35,6 +35,18 @@ from homeassistant.const import (
 
 DOMAIN = "ochsner_ote_viewer"
 
+
+def build_connection_id(host: str, port: int, slave_id: int) -> str:
+    """Stable identifier for one physical OTE Modbus Gateway, independent of the
+    config entry's own internal entry_id (which is randomly regenerated every time
+    the integration is removed and re-added). Used for the config entry's own
+    unique_id (config_flow.py) *and* the device/entity identifiers (sensor.py) - so
+    removing and re-adding the integration with the same connection details
+    reconnects to the same device/entities/history instead of orphaning it. See
+    DECISIONS.md for why this replaced an entry_id-based scheme."""
+    return f"{host}:{port}:{slave_id}"
+
+
 CONF_SLAVE_ID = "slave_id"
 CONF_HAS_COOLING = "has_cooling"
 CONF_HAS_AUXILIARY_HEATER = "has_auxiliary_heater"

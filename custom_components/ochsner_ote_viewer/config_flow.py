@@ -17,6 +17,7 @@ from . import meter_profiles
 from .const import (
     BASE_REGISTER,
     CONF_CONFIGURE_EXTERNAL_SENSORS,
+    build_connection_id,
     CONF_EXTERNAL_ENERGY_SENSOR_1,
     CONF_EXTERNAL_ENERGY_SENSOR_2,
     CONF_EXTERNAL_ENERGY_SENSOR_3,
@@ -162,7 +163,9 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            unique_id = f"{user_input[CONF_HOST]}:{user_input[CONF_PORT]}:{user_input[CONF_SLAVE_ID]}"
+            unique_id = build_connection_id(
+                user_input[CONF_HOST], user_input[CONF_PORT], user_input[CONF_SLAVE_ID]
+            )
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
