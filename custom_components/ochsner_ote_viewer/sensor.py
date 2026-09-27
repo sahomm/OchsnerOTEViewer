@@ -89,6 +89,8 @@ class OchsnerSensor(_OchsnerBaseSensor):
         self._attr_device_class = description.device_class
         self._attr_state_class = description.state_class
         self._attr_entity_registry_enabled_default = description.entity_registry_enabled_default
+        self._attr_entity_category = description.entity_category
+        self._attr_entity_registry_visible_default = description.entity_registry_visible_default
 
 
 class OchsnerCombinedCounterSensor(_OchsnerBaseSensor):
@@ -104,6 +106,7 @@ class OchsnerCombinedCounterSensor(_OchsnerBaseSensor):
         self._attr_native_unit_of_measurement = description.unit
         self._attr_device_class = description.device_class
         self._attr_state_class = description.state_class
+        self._attr_entity_category = description.entity_category
 
 
 class OchsnerDerivedSensor(_OchsnerBaseSensor):
