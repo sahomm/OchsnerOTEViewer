@@ -11,20 +11,28 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "has_cooling": "Anlage hat eine aktive Kühlfunktion",
           "has_auxiliary_heater": "Anlage hat eine von Ochsner gesteuerte Zusatzheizung",
-          "configure_external_sensors": "Externe Stromsensoren einrichten (optional, für Lebenszeit-Effizienz/JAZ und berechneten COP)"
+          "configure_external_sensors": "Genauere Effizienzwerte für die Wärmepumpe einrichten (optional, per externem Stromzähler wie z. B. Shelly 3EM)"
         }
       },
       "external_sensors": {
         "title": "Externe Stromsensoren",
-        "description": "Ochsner selbst liefert dafür meist keine brauchbaren Werte, daher optional: Stromzähler-Sensoren speisen den Lebenszeit-Effizienz/JAZ-Sensor, Leistungssensoren den berechneten Echtzeit-COP. Wurde ein bekanntes Zählergerät in deiner Home-Assistant-Installation gefunden, kannst du es oben direkt auswählen – die 6 Felder darunter werden dann automatisch befüllt. Wurde nichts gefunden (oder ist dein Gerät noch nicht unterstützt, siehe README \"Kompatible Zähler\"), fülle die 6 Felder stattdessen manuell aus. Lies vor dem Nachrüsten neuer Zähler-Hardware das README (Lebensgefahr bei Arbeiten am Sicherungskasten – nur durch eine Elektrofachkraft).",
+        "description": "Ochsner selbst liefert dafür meist keine brauchbaren Werte. Wurde ein bekanntes Zählergerät in deiner Home-Assistant-Installation gefunden, wähle es hier aus – die Effizienzsensoren (Lebenszeit-Effizienz/JAZ und berechneter Echtzeit-COP) werden dann automatisch damit gespeist. Wurde nichts gefunden (oder ist dein Gerät noch nicht unterstützt, siehe README \"Kompatible Zähler\"), nutze den Bereich \"Manuelle Konfiguration\" unten.",
         "data": {
-          "external_meter_device": "Erkanntes Zählergerät (falls gefunden)",
-          "external_energy_sensor_1": "Externer Stromzähler-Sensor, Phase 1 (optional)",
-          "external_energy_sensor_2": "Externer Stromzähler-Sensor, Phase 2 (optional)",
-          "external_energy_sensor_3": "Externer Stromzähler-Sensor, Phase 3 (optional)",
-          "external_power_sensor_1": "Externer Leistungssensor, Phase 1 (optional)",
-          "external_power_sensor_2": "Externer Leistungssensor, Phase 2 (optional)",
-          "external_power_sensor_3": "Externer Leistungssensor, Phase 3 (optional)"
+          "external_meter_device": "Erkanntes Zählergerät (falls gefunden)"
+        },
+        "sections": {
+          "manual_sensors": {
+            "name": "Manuelle Konfiguration",
+            "description": "Nur nötig, falls oben kein passendes Gerät gefunden wurde oder du bestimmte Entities gezielt selbst auswählen willst: bis zu drei Stromzähler-Sensoren (kWh, für die Lebenszeit-Effizienz/JAZ) und bis zu drei Leistungssensoren (W, für den berechneten Echtzeit-COP). Lies vor dem Nachrüsten neuer Zähler-Hardware das README (Lebensgefahr bei Arbeiten am Sicherungskasten – nur durch eine Elektrofachkraft).",
+            "data": {
+              "external_energy_sensor_1": "Externer Stromzähler-Sensor, Phase 1 (optional)",
+              "external_energy_sensor_2": "Externer Stromzähler-Sensor, Phase 2 (optional)",
+              "external_energy_sensor_3": "Externer Stromzähler-Sensor, Phase 3 (optional)",
+              "external_power_sensor_1": "Externer Leistungssensor, Phase 1 (optional)",
+              "external_power_sensor_2": "Externer Leistungssensor, Phase 2 (optional)",
+              "external_power_sensor_3": "Externer Leistungssensor, Phase 3 (optional)"
+            }
+          }
         }
       }
     },

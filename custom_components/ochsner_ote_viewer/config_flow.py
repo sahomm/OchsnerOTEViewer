@@ -10,6 +10,7 @@ from pymodbus.client import AsyncModbusTcpClient
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from . import meter_profiles
@@ -83,12 +84,21 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
+# Key of the collapsible "Manuelle Konfiguration" section within the external-sensors
+# step schema - never stored in the config entry, only ever used to structure the form
+# (see async_step_external_sensors, which unpacks it back into flat keys on submit).
+SECTION_MANUAL_SENSORS = "manual_sensors"
+
+
 def _build_external_sensors_schema(
     discovered: list[meter_profiles.DiscoveredMeter],
 ) -> vol.Schema:
     """Build the step-2 schema. The discovered-device field is only included at all
     if meter_profiles.discover() actually found something - an empty list means
-    nothing recognized is present, so there's nothing meaningful to choose from."""
+    nothing recognized is present, so there's nothing meaningful to choose from. The 6
+    manual entity fields live in a collapsible "Manuelle Konfiguration" section below
+    it, collapsed by default only if a device was found (otherwise it's the only
+    option, so show it open right away)."""
     schema_dict: dict[Any, Any] = {}
 
     if discovered:
@@ -102,7 +112,7 @@ def _build_external_sensors_schema(
             )
         )
 
-    schema_dict.update(
+    manual_schema = vol.Schema(
         {
             vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_1): EXTERNAL_ENERGY_SENSOR_SELECTOR,
             vol.Optional(CONF_EXTERNAL_ENERGY_SENSOR_2): EXTERNAL_ENERGY_SENSOR_SELECTOR,
@@ -111,6 +121,9 @@ def _build_external_sensors_schema(
             vol.Optional(CONF_EXTERNAL_POWER_SENSOR_2): EXTERNAL_POWER_SENSOR_SELECTOR,
             vol.Optional(CONF_EXTERNAL_POWER_SENSOR_3): EXTERNAL_POWER_SENSOR_SELECTOR,
         }
+    )
+    schema_dict[vol.Optional(SECTION_MANUAL_SENSORS, default={})] = section(
+        manual_schema, {"collapsed": bool(discovered)}
     )
     return vol.Schema(schema_dict)
 
@@ -195,6 +208,12 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         discovered = meter_profiles.discover(self.hass)
 
         if user_input is not None:
+            # section() nests the manual fields under this key - pull them back out
+            # into a flat dict of the same CONF_EXTERNAL_*_SENSOR_* keys the manual
+            # fields have always used, so a discovered device's resolution below (and
+            # coordinator.py downstream) doesn't need to know sections exist at all.
+            resolved = dict(user_input.pop(SECTION_MANUAL_SENSORS, {}))
+
             meter_device_id = user_input.get(CONF_EXTERNAL_METER_DEVICE)
             if meter_device_id:
                 match = next(
@@ -204,12 +223,13 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if match is None:
                     errors["base"] = "meter_not_recognized"
                 else:
+                    # A recognized device overrides whatever was manually entered.
                     for i, (energy_entity_id, power_entity_id) in enumerate(match.phases):
-                        user_input[EXTERNAL_ENERGY_SENSOR_KEYS[i]] = energy_entity_id
-                        user_input[EXTERNAL_POWER_SENSOR_KEYS[i]] = power_entity_id
+                        resolved[EXTERNAL_ENERGY_SENSOR_KEYS[i]] = energy_entity_id
+                        resolved[EXTERNAL_POWER_SENSOR_KEYS[i]] = power_entity_id
 
             if not errors:
-                data = {**self._base_data, **user_input}
+                data = {**self._base_data, **resolved}
                 return self.async_create_entry(
                     title=f"Ochsner OTE Viewer ({data[CONF_HOST]})",
                     data=data,
