@@ -195,11 +195,14 @@ im Hintergrund weiter mit, für die geplante Korrelations-Analyse über die Heiz
 ihr Rohwert für sich genommen eher verwirrt als hilft:
 
 - **"COP (Ochsner-Register, unverifiziert)"** – per drei direkten Live-Abfragen bestätigt
-  (nicht vermutet): Leerlauf kurz nach der Einrichtung, dann aktiver Betrieb (Statuscode
-  Wärmepumpe = 1, echte ~21 kW Wärmeleistung über den Durchfluss gemessen), dann wieder
-  Leerlauf nach dem Abschalten – das Register zeigte bei allen drei Momenten exakt denselben
-  Wert (25,5), auch während des laufenden Betriebs. Es reagiert also nicht live auf den
-  tatsächlichen Betrieb, wie es der Name nahelegt – warum, ist offen (z. B. ein selten
+  (nicht vermutet), während des bislang einzigen Heizzyklus seit Installation der Integration
+  (ca. 12:15–12:49 Uhr am 27.09.2026, ca. 34 Minuten): Leerlauf davor, dann aktiver Betrieb
+  (Statuscode Wärmepumpe = 1, echte ~21 kW Wärmeleistung über den Durchfluss gemessen), dann
+  wieder Leerlauf nach dem Abschalten (Abschaltvorgang um 12:49:58 Uhr gemessen) – das Register
+  zeigte bei allen drei Momenten exakt denselben Wert (25,5), auch während des laufenden
+  Betriebs. Es reagiert also zumindest bei diesem einen Zyklus nicht live auf den
+  tatsächlichen Betrieb, wie es der Name nahelegt – ob das die Regel ist, zeigen erst weitere
+  Heizzyklen über die Saison. Warum, ist offen (z. B. ein selten
   aktualisierter interner Parameter oder ein fester Auslegungswert statt einer Messung).
 - **"Heizleistung (roh, unverifiziert)"** – zeigt Werte wie "-100", die ohne Kontext nicht
   einzuordnen sind.

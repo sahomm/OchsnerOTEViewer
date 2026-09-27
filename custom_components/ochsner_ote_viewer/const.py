@@ -241,22 +241,24 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
     ),
-    # Confirmed via 3 separate live polls on 2026-09-27, not just guessed: idle right
-    # after setup, then actively running (heat_pump_status=1, real ~21 kW thermal
-    # output measured via volume_flow), then idle again after shutdown - the register
-    # read the exact same value (25.5) every single time, including *during* active
-    # compressor operation. So it does not track live/instantaneous compressor
-    # operation the way its name suggests, at least not on the timescale observed.
-    # (Note: a single unchanged entry in HA's own state history proves nothing by
-    # itself - the recorder only ever logs a new row when a value changes, so a
-    # genuinely constant register would look identical there; the 3 live polls across
-    # different real operating states are what actually establishes this.) Whether
-    # this is a slow-updating internal parameter, a fixed rated/design value, or
-    # something else entirely is unknown - not guessed at further here. Hidden by
-    # default (not disabled) so it doesn't mislead users into treating it as a live
-    # COP reading, while staying enabled/recorded for comparison against
-    # computed_cop_flow_method over the coming heating season (see that sensor's own
-    # comment).
+    # Confirmed via 3 separate live polls on 2026-09-27, not just guessed: idle before
+    # ~12:15 local time, then actively running from ~12:15 until a shutdown transient
+    # measured at 12:49:58 (heat_pump_status=1, real ~21 kW thermal output measured via
+    # volume_flow), then idle again - this was the heat pump's only heating cycle since
+    # the integration was installed. The register read the exact same value (25.5)
+    # every single time, including *during* that active ~34-minute run. So it does not
+    # track live/instantaneous compressor operation the way its name suggests, at
+    # least not during the one cycle observed so far. (Note: a single unchanged entry
+    # in HA's own state history proves nothing by itself - the recorder only ever logs
+    # a new row when a value changes, so a genuinely constant register would look
+    # identical there; the 3 live polls across different real operating states are
+    # what actually establishes this.) Whether this is a slow-updating internal
+    # parameter, a fixed rated/design value, or something else entirely is unknown -
+    # not guessed at further here; more heating cycles over the season will show
+    # whether this was a one-off or the norm. Hidden by default (not disabled) so it
+    # doesn't mislead users into treating it as a live COP reading, while staying
+    # enabled/recorded for comparison against computed_cop_flow_method over the coming
+    # heating season (see that sensor's own comment).
     OchsnerSensorDescription(
         key="compressor_cop",
         offset=21,
