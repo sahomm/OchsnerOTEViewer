@@ -172,9 +172,37 @@ still trailing off from pump/water inertia; without this guard the division woul
 spike to a meaningless value (observed: a COP of 167 during a shutdown transient). It's
 deliberately a **separate, additional** sensor, not a replacement for the Ochsner register -
 comparing the two over the coming heating season is the point, to work out what that
-undocumented register actually represents. The "Heating capacity, Ochsner register (raw,
-undocumented unit)" sensor is enabled by default for exactly this reason, so Home
+undocumented register actually represents. The "Heating capacity (raw, unverified)" sensor is
+enabled by default for exactly this reason (but hidden, see next section), so Home
 Assistant's long-term statistics start tracking its history from now on.
+
+## Sensor organization
+
+With ~27 sensors per heat pump, some sorting helps. Home Assistant's device page doesn't
+support custom named section headers, but it does have a built-in split into **Sensors**
+(everyday-relevant, shown first) and **Diagnostics** (technical, its own collapsed block -
+status codes, refrigerant-circuit pressures, error codes, wear counters like operating
+hours/switch cycles). Everything stays active and keeps recording history/statistics either
+way, this is purely a visual grouping.
+
+Two sensors are additionally **hidden** by default (not disabled - they keep running in the
+background for the planned correlation analysis over the heating season), because their raw
+value is more confusing than helpful on its own:
+
+- **"COP (Ochsner register, unverified)"** - confirmed via Home Assistant history (not just
+  suspected): this register held the exact same value (25.5) across a full idle -> compressor
+  running -> idle cycle. It doesn't respond live to actual operation the way its name
+  suggests - why is unclear (e.g. a rarely-updated internal parameter, or a fixed design value
+  rather than a measurement).
+- **"Heating capacity (raw, unverified)"** - shows values like "-100" that don't mean
+  anything without context.
+
+Hidden sensors can be made visible again any time from the entity's settings. For the two
+core computed sensors (SPF, computed COP) as well as status-code and counter names, the
+common abbreviation now comes first with the full description in parentheses after it (e.g.
+"SPF (efficiency since first measurement)"). A hover tooltip, which some might expect, isn't
+something Home Assistant's default UI currently supports for individual entities - the name
+is the only lever an integration has direct control over here.
 
 ## Contributing
 

@@ -56,12 +56,12 @@
       "suction_gas_pressure": { "name": "Sauggasdruck" },
       "hot_gas_pressure": { "name": "Heißgasdruck" },
       "volume_flow": { "name": "Volumenstrom" },
-      "compressor_cop": { "name": "COP" },
+      "compressor_cop": { "name": "COP (Ochsner-Register, unverifiziert)" },
       "heat_generator_control_status": { "name": "Status Zusatzheizungsregelung" },
       "heat_manager_status": { "name": "Statuscode Wärmemanager" },
       "system_temperature_setpoint": { "name": "Anlagentemperatur Sollwert" },
       "system_temperature": { "name": "Anlagentemperatur" },
-      "heating_capacity": { "name": "Heizleistung, Ochsner-Register (roh, Einheit undokumentiert)" },
+      "heating_capacity": { "name": "Heizleistung (roh, unverifiziert)" },
       "buffer_temperature_top": { "name": "Puffertemperatur oben (TPO)" },
       "buffer_temperature_middle": { "name": "Puffertemperatur Mitte" },
       "cooling_buffer_temperature_middle": { "name": "Kühlpuffertemperatur Mitte" },
@@ -79,8 +79,8 @@
       "heat_pump_operating_hours": { "name": "Betriebsstunden Wärmepumpe" },
       "auxiliary_heater_switch_cycles": { "name": "Schaltzyklen Zusatzheizung" },
       "auxiliary_heater_operating_hours": { "name": "Betriebsstunden Zusatzheizung" },
-      "lifetime_efficiency_jaz": { "name": "Effizienz seit erster Messung (Jahresarbeitszahl/JAZ)" },
-      "computed_cop_flow_method": { "name": "COP, berechnet (Durchfluss-Methode)" }
+      "lifetime_efficiency_jaz": { "name": "JAZ (Effizienz seit erster Messung)" },
+      "computed_cop_flow_method": { "name": "COP (berechnet, Durchfluss-Methode)" }
     }
   }
 }
