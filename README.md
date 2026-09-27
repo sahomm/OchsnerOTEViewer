@@ -15,6 +15,18 @@ Dieses Projekt wurde von [sahomm](https://github.com/sahomm) mit Unterstützung 
 > verwendet, mit dem diese Integration kommuniziert – ohne Billigung oder Zusammenarbeit zu
 > unterstellen. Quelle: offizielle Vektor-Grafik von ochsner.com.
 
+## Update-Hinweis (ab v0.11.0)
+
+⚠️ Hattest du bereits eine ältere Version installiert (vor v0.11.0)? Diese Version ändert,
+wie Sensoren intern identifiziert werden (stabile Verbindungsdaten statt einer zufälligen
+internen ID) – notwendig, damit ein künftiges Entfernen+Neuanlegen der Integration nicht
+mehr die komplette Verlaufshistorie verwaist. Als einmaliger Übergang bedeutet das: Nach dem
+Update auf v0.11.0 bitte die Integration einmal **entfernen und mit denselben
+Verbindungsdaten neu anlegen** (Geräte & Dienste → Ochsner OTE Viewer → Löschen, dann neu
+hinzufügen) – sonst entstehen doppelte Entities (alte, verwaiste + neue). Ab diesem Zeitpunkt
+bleibt die Historie bei künftigen Entfernen+Neuanlegen-Vorgängen erhalten, solange Host/Port/
+Modbus-Adresse gleich bleiben.
+
 ## Status
 
 🚧 **Früher Entwicklungsstand (v0.1) – die Integration existiert und wurde gegen ein
