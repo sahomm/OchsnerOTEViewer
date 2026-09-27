@@ -190,11 +190,14 @@ background for the planned correlation analysis over the heating season), becaus
 value is more confusing than helpful on its own:
 
 - **"COP (Ochsner register, unverified)"** - confirmed via three direct live polls (not just
-  suspected): idle shortly after setup, then actively running (heat pump status = 1, real
-  ~21 kW thermal output measured via flow), then idle again after shutdown - the register
-  read the exact same value (25.5) at all three moments, including while actually running. It
-  doesn't respond live to actual operation the way its name suggests - why is unclear (e.g. a
-  rarely-updated internal parameter, or a fixed design value rather than a measurement).
+  suspected), during the only heating cycle so far since the integration was installed
+  (~12:15-12:49 local time on 2026-09-27, ~34 minutes): idle before, then actively running
+  (heat pump status = 1, real ~21 kW thermal output measured via flow), then idle again after
+  a shutdown transient measured at 12:49:58 - the register read the exact same value (25.5) at
+  all three moments, including while actually running. It didn't respond live to actual
+  operation the way its name suggests during this one cycle - whether that holds up over more
+  cycles across the season remains to be seen. Why is unclear either way (e.g. a rarely-updated
+  internal parameter, or a fixed design value rather than a measurement).
 - **"Heating capacity (raw, unverified)"** - shows values like "-100" that don't mean
   anything without context.
 
