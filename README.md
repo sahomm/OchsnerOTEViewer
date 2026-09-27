@@ -143,8 +143,9 @@ nicht den gesamten Haushalt.
 Integration deine Home-Assistant-Installation selbstständig nach bekannten Zählergeräten.
 Wird eines gefunden, erscheint es oben als fertige Auswahl ("Erkanntes Zählergerät") – wählst
 du es aus, werden die 6 Felder darunter automatisch befüllt (`meter_profiles.py`). Es gibt
-bewusst kein offenes "wähl irgendein Gerät"-Feld: das führt schnell zu falschen Treffern,
-siehe [DECISIONS.md](DECISIONS.md). Aktuell unterstützt:
+bewusst kein offenes "wähl irgendein Gerät"-Feld: das führte in einer früheren Version schnell
+zu falschen Treffern (z. B. wurden einzelne Phasen-Geräte statt des richtigen Hub-Geräts
+angeboten). Aktuell unterstützt:
 
 | Gerät | Status |
 |---|---|
