@@ -137,8 +137,9 @@ siehe [DECISIONS.md](DECISIONS.md). Aktuell unterstützt:
 | Shelly 3EM (Gen1), offizielle `shelly`-Integration | ✅ verifiziert |
 | Shelly Pro 3EM (Gen2) und andere Zähler | ❌ noch nicht – Struktur unbekannt, bitte manuell befüllen |
 
-Wird nichts Bekanntes gefunden, entfällt dieses Feld einfach und du füllst die 6 Felder
-manuell aus – das funktioniert unabhängig davon immer. Unterstützung für weitere Zähler lässt
+Wird nichts Bekanntes gefunden, entfällt dieses Feld einfach und du füllst die 6 Felder unter
+"Manuelle Konfiguration" aus (eingeklappt, wenn ein Gerät gefunden wurde, sonst automatisch
+aufgeklappt) – das funktioniert unabhängig davon immer. Unterstützung für weitere Zähler lässt
 sich per PR ergänzen: ein neuer `MeterProfile`-Eintrag in `meter_profiles.py` mit einer
 `resolve()`-Funktion, die aus dem Geräte-/Entity-Registry die passenden Entities findet.
 

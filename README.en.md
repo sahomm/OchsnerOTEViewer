@@ -136,10 +136,11 @@ Currently supported:
 | Shelly 3EM (Gen1), official `shelly` integration | ✅ verified |
 | Shelly Pro 3EM (Gen2) and other meters | ❌ not yet - structure unknown, please fill in manually |
 
-If nothing known is found, this field is simply left out and you fill in the 6 fields
-manually instead - that always works regardless. Support for more meters can be added via PR:
-a new `MeterProfile` entry in `meter_profiles.py` with a `resolve()` function that locates the
-right entities from the device/entity registry.
+If nothing known is found, this field is simply left out and you fill in the 6 fields under
+"Manual configuration" instead (collapsed if a device was found, expanded automatically
+otherwise) - that always works regardless. Support for more meters can be added via PR: a new
+`MeterProfile` entry in `meter_profiles.py` with a `resolve()` function that locates the right
+entities from the device/entity registry.
 
 **Computed COP (flow method):** in addition to Ochsner's own (undocumented) "Leistungszahl
 COP" register, there's a second, independently-computed COP sensor:
