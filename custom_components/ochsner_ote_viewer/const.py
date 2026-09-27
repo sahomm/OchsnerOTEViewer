@@ -42,6 +42,17 @@ CONF_HAS_AUXILIARY_HEATER = "has_auxiliary_heater"
 # connection basics instead of showing 6+ extra fields to everyone up front. Only
 # used to control config-flow navigation, never stored in the final config entry.
 CONF_CONFIGURE_EXTERNAL_SENSORS = "configure_external_sensors"
+
+# Internal (not user-facing/not shown in any form) config-entry key the coordinator
+# uses to persist the heating/electrical energy readings it first saw, so
+# lifetime_efficiency_jaz can be computed from the *change* since then rather than
+# from Ochsner's raw since-commissioning counter - see coordinator.py
+# _delta_since_baseline() for why: dividing a years-old counter by a freshly added
+# external meter's few-day counter produces a meaningless ratio. Applies the same way
+# regardless of whether the electrical side comes from Ochsner's own register or an
+# external sensor - both are just "some ever-growing counter" from this sensor's
+# point of view.
+STORAGE_KEY_JAZ_BASELINES = "_jaz_baselines"
 # Optional external electricity sensors (e.g. a Shelly 3EM's three per-phase energy
 # entities) used for the lifetime-efficiency sensor instead of Ochsner's own
 # electrical_energy_* registers. Three separate slots rather than one "total" entity
@@ -362,18 +373,19 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
     ),
 )
 
-# Lifetime-average efficiency, computed in the coordinator as
-# (heating_energy_kwh + heating_energy_mwh) / (electrical_energy_kwh + electrical_energy_mwh)
-# once both totals are combined. ASSUMPTION, not explicitly documented in the Ochsner PDF:
-# the kWh/MWh register pairs are combined as mwh*1000 + kwh, the same pattern the manual
-# spells out for Schaltzyklen/Betriebsstunden - but that combination note is only given for
-# those, not restated for the energy pairs. Sanity-checked against real data (heating_energy
-# = 3674 kWh + 7 MWh = 10,674 kWh total over ~2272 operating hours on a 17 kW-class heat
-# pump - a plausible multi-year total), but not independently confirmed. This sensor is
-# only ever populated once electrical_energy_kwh/mwh are themselves available, which
-# requires an Ochsner-side electricity meter accessory feeding that register - many
-# installations (including the one this project was built against) will show this as
-# unavailable, which is expected, not a bug.
+# Efficiency since this sensor first got a reading (or since its tracked baseline was
+# last reset - see coordinator.py _delta_since_baseline), computed as the *change* in
+# heating_energy divided by the *change* in electrical_energy, not their raw lifetime
+# totals - see _delta_since_baseline for why (a years-old Ochsner counter divided by a
+# freshly-added external meter's few-day counter is meaningless). ASSUMPTION, not
+# explicitly documented in the Ochsner PDF: the kWh/MWh register pairs are combined as
+# mwh*1000 + kwh, the same pattern the manual spells out for Schaltzyklen/Betriebsstunden
+# - but that combination note is only given for those, not restated for the energy
+# pairs. This sensor is only ever populated once electrical_energy_kwh/mwh (or the
+# configured external sensors) are themselves available, which for Ochsner's own
+# register requires an electricity meter accessory feeding it - many installations
+# (including the one this project was built against) will show Ochsner's own register
+# as unavailable, which is expected, not a bug (use the external sensors instead).
 DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
     OchsnerDerivedSensorDescription(key="lifetime_efficiency_jaz"),
     # Instantaneous COP, computed independently of Ochsner's own (undocumented-unit)

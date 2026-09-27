@@ -118,14 +118,51 @@ Two follow-up requests from that test:
    needed no changes. Collapsed by default only when a device was actually discovered
    (otherwise the section is the only option, so it opens by default).
 
-**Found in the same live test, not yet addressed:** the resulting JAZ value (126.1) is
-not trustworthy. Ochsner's own `heating_energy_kwh/mwh` is a lifetime counter since the
-heat pump's commissioning (10,674 kWh here); the newly-added Shelly 3EM only had ~84
-kWh summed across its 3 phases (it started counting recently). Dividing a multi-year
-heating total by a few days/weeks of electricity data produces a meaningless ratio -
-not a bug in the meter-detection feature, but a pre-existing gap in how
-`_compute_lifetime_efficiency` frames "lifetime" that becomes obvious now that real
-external data flows through it. Flagged to the user 2026-09-27; not yet decided how to
-address (documentation-only caveat vs. rethinking the metric, e.g. tracking it as a
-period-over-period figure via HA's own long-term statistics instead of a raw
-ever-growing ratio).
+**Found in the same live test:** the resulting JAZ value (126.1) was not trustworthy.
+Ochsner's own `heating_energy_kwh/mwh` is a lifetime counter since the heat pump's
+commissioning (10,674 kWh here); the newly-added Shelly 3EM only had ~84 kWh summed
+across its 3 phases (it started counting recently). Dividing a multi-year heating
+total by a few days/weeks of electricity data produces a meaningless ratio - not a bug
+in the meter-detection feature, but a pre-existing gap in how
+`_compute_lifetime_efficiency` frames "lifetime" that became obvious once real
+external data started flowing through it. Fixed in v0.9.0 below, per the user's
+explicit direction: apply the same delta-based fix uniformly, regardless of whether
+the electrical side is Ochsner's own register or an external sensor.
+
+## v0.9.0 (2026-09-27, shipped): JAZ computed from a persisted baseline, not raw lifetime totals
+
+`coordinator.py` gained `_delta_since_baseline(key, current_total)`: the first time a
+quantity (heating or electrical energy) is seen, its current value is stored as a
+baseline in `entry.data[STORAGE_KEY_JAZ_BASELINES]` (persisted via
+`hass.config_entries.async_update_entry`, survives restarts) and no delta is returned
+yet. Every reading after that returns `current - baseline`. If a reading comes in
+*lower* than the baseline (the underlying counter itself got reset - possible for an
+external sensor just as much as for Ochsner's own register, e.g. a replaced/reset
+meter), the baseline re-anchors to the new current value and the cycle repeats.
+`_compute_lifetime_efficiency` now divides `heating_delta / electrical_delta` instead
+of the raw lifetime totals - applied uniformly to both sides regardless of source, per
+the user's explicit instruction ("egal ob der Ochsner Wert oder der des externen
+Sensors, immer nur von der Differenz ausgehen").
+
+Consequence, called out to the user directly and in both READMEs: this needs real
+runtime after setup (or after a reset) before it settles on a reliable number - how
+long depends on how much the heat pump actually heats in the meantime. The entity's
+translated name changed from "seit Inbetriebnahme"/"since commissioning" to "seit
+erster Messung"/"since first measurement" to stop overclaiming what the number now
+represents. The entity's underlying `key` (`lifetime_efficiency_jaz`) was deliberately
+left unchanged so its already-accumulating long-term statistics history isn't
+orphaned - only the human-facing name changed.
+
+Known accepted tradeoff: on any existing installation upgrading to v0.9.0, both
+baselines reset on first run after the update (nothing was persisted before this
+version existed), so the sensor briefly goes back to "unavailable" until a new
+baseline and its first delta build up again - including for the rarer case where
+Ochsner's own electricity-meter accessory was already working and producing a
+long-stable, meaningful lifetime ratio before this change. Accepted as a one-time cost
+of moving to the more broadly correct behavior.
+
+Also asked by the user in the same turn: stop adding the `Co-Authored-By: Claude`
+trailer to commits in this repo going forward (commits already use their own name/
+email as author - this only affected the trailer). Added a one-line acknowledgment
+that the project was built with Claude's help to both READMEs instead, so the
+collaboration stays visible without it being on every commit.
