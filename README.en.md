@@ -189,11 +189,12 @@ Two sensors are additionally **hidden** by default (not disabled - they keep run
 background for the planned correlation analysis over the heating season), because their raw
 value is more confusing than helpful on its own:
 
-- **"COP (Ochsner register, unverified)"** - confirmed via Home Assistant history (not just
-  suspected): this register held the exact same value (25.5) across a full idle -> compressor
-  running -> idle cycle. It doesn't respond live to actual operation the way its name
-  suggests - why is unclear (e.g. a rarely-updated internal parameter, or a fixed design value
-  rather than a measurement).
+- **"COP (Ochsner register, unverified)"** - confirmed via three direct live polls (not just
+  suspected): idle shortly after setup, then actively running (heat pump status = 1, real
+  ~21 kW thermal output measured via flow), then idle again after shutdown - the register
+  read the exact same value (25.5) at all three moments, including while actually running. It
+  doesn't respond live to actual operation the way its name suggests - why is unclear (e.g. a
+  rarely-updated internal parameter, or a fixed design value rather than a measurement).
 - **"Heating capacity (raw, unverified)"** - shows values like "-100" that don't mean
   anything without context.
 
