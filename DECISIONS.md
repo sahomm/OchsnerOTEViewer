@@ -86,3 +86,46 @@ Shipped:
     `coordinator.py` needed no changes at all, again.
 - The `configure_external_sensors` checkbox is a pure flow-routing flag, popped off
   before the entry is created - it's never stored in the config entry itself.
+
+## v0.8.0 (2026-09-27, shipped): collapsible manual section + wording pass
+
+Live-tested against the user's real instance: `discover()` correctly found and listed
+all 4 of the user's Shelly 3EM (Gen1) devices by name ("ATON", "Netz", "Waermepumpe",
+"Wallbox"), and picking "Waermepumpe" correctly resolved and stored its 6 entities -
+the JAZ sensor started computing a value instead of staying "unavailable", confirming
+the whole discovery -> resolution -> coordinator pipeline works end to end.
+
+Two follow-up requests from that test:
+1. The step-1 checkbox's raw key (`configure_external_sensors`) rendered untranslated
+   in the UI. Root cause: a stale frontend translation cache from before this key
+   existed (older keys on the same page, `has_cooling` etc., rendered fine) - not a
+   bug in this repo, but the wording was reworded anyway to be more concrete/tangible
+   for non-technical users while at it ("Genauere Effizienzwerte für die Wärmepumpe
+   einrichten (optional, per externem Stromzähler wie z. B. Shelly 3EM)" instead of a
+   dry "Externe Stromsensoren einrichten").
+2. The 6 manual fields, sitting right below the discovered-device dropdown with no
+   visual separation, needed a heading ("Manuelle Konfiguration") plus small-print
+   explanation of when they're actually needed. Implemented with Home Assistant's
+   `section()` schema helper (`homeassistant.data_entry_flow.section`) instead of a
+   third config-flow step, since the ask was specifically for grouping *within* the
+   existing page. Verified against real HA core source (the `generic` camera
+   integration's "Advanced options" section) before using it, to confirm: (a) the
+   exact schema shape - `vol.Optional(key, default={}): section(vol.Schema({...}),
+   {"collapsed": bool})` - and (b) that HA does NOT flatten a section's fields into
+   the top-level `user_input` automatically; the code must pop `user_input[key]` as a
+   nested dict itself. `config_flow.py` does exactly that, flattening it back into the
+   same flat `CONF_EXTERNAL_*_SENSOR_*` keys before merging - `coordinator.py` again
+   needed no changes. Collapsed by default only when a device was actually discovered
+   (otherwise the section is the only option, so it opens by default).
+
+**Found in the same live test, not yet addressed:** the resulting JAZ value (126.1) is
+not trustworthy. Ochsner's own `heating_energy_kwh/mwh` is a lifetime counter since the
+heat pump's commissioning (10,674 kWh here); the newly-added Shelly 3EM only had ~84
+kWh summed across its 3 phases (it started counting recently). Dividing a multi-year
+heating total by a few days/weeks of electricity data produces a meaningless ratio -
+not a bug in the meter-detection feature, but a pre-existing gap in how
+`_compute_lifetime_efficiency` frames "lifetime" that becomes obvious now that real
+external data flows through it. Flagged to the user 2026-09-27; not yet decided how to
+address (documentation-only caveat vs. rethinking the metric, e.g. tracking it as a
+period-over-period figure via HA's own long-term statistics instead of a raw
+ever-growing ratio).
