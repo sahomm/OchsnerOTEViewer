@@ -241,14 +241,14 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
     ),
-    # Confirmed via 3 separate live polls on 2026-09-27, not just guessed: idle before
-    # ~12:15 local time, then actively running from ~12:15 until a shutdown transient
-    # measured at 12:49:58 (heat_pump_status=1, real ~21 kW thermal output measured via
-    # volume_flow), then idle again - this was the heat pump's only heating cycle since
-    # the integration was installed. The register read the exact same value (25.5)
-    # every single time, including *during* that active ~34-minute run. So it does not
-    # track live/instantaneous compressor operation the way its name suggests, at
-    # least not during the one cycle observed so far. (Note: a single unchanged entry
+    # Confirmed via 3 separate live polls, not just guessed: idle before, actively
+    # running (heat_pump_status=1, real ~21 kW thermal output measured via
+    # volume_flow), then idle again after a shutdown transient - this was the heat
+    # pump's only heating cycle observed so far since the integration was installed.
+    # The register read the exact same value (25.5) every single time, including
+    # *during* that run. So it does not track live/instantaneous compressor operation
+    # the way its name suggests, at least not during that one cycle. (Note: a single
+    # unchanged entry
     # in HA's own state history proves nothing by itself - the recorder only ever logs
     # a new row when a value changes, so a genuinely constant register would look
     # identical there; the 3 live polls across different real operating states are
