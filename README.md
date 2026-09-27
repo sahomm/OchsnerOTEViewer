@@ -194,11 +194,13 @@ Zwei Sensoren sind zusätzlich standardmäßig **ausgeblendet** (nicht deaktivie
 im Hintergrund weiter mit, für die geplante Korrelations-Analyse über die Heizsaison), weil
 ihr Rohwert für sich genommen eher verwirrt als hilft:
 
-- **"COP (Ochsner-Register, unverifiziert)"** – per Home-Assistant-Verlauf bestätigt (nicht
-  vermutet): Dieses Register hielt über einen kompletten Zyklus Leerlauf → Kompressor läuft →
-  Leerlauf denselben Wert (25,5). Es reagiert also nicht live auf den tatsächlichen Betrieb,
-  wie es der Name nahelegt – warum, ist offen (z. B. ein selten aktualisierter interner
-  Parameter oder ein fester Auslegungswert statt einer Messung).
+- **"COP (Ochsner-Register, unverifiziert)"** – per drei direkten Live-Abfragen bestätigt
+  (nicht vermutet): Leerlauf kurz nach der Einrichtung, dann aktiver Betrieb (Statuscode
+  Wärmepumpe = 1, echte ~21 kW Wärmeleistung über den Durchfluss gemessen), dann wieder
+  Leerlauf nach dem Abschalten – das Register zeigte bei allen drei Momenten exakt denselben
+  Wert (25,5), auch während des laufenden Betriebs. Es reagiert also nicht live auf den
+  tatsächlichen Betrieb, wie es der Name nahelegt – warum, ist offen (z. B. ein selten
+  aktualisierter interner Parameter oder ein fester Auslegungswert statt einer Messung).
 - **"Heizleistung (roh, unverifiziert)"** – zeigt Werte wie "-100", die ohne Kontext nicht
   einzuordnen sind.
 
