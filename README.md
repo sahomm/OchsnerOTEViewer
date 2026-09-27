@@ -5,6 +5,9 @@
 Home Assistant Integration zum Auslesen von OCHSNER-Wärmepumpen mit **OTE-Reglergeneration**
 über das offizielle **OTE-Modbus-Gateway** (TEM ZIF180, eBUS↔Modbus RTU).
 
+Dieses Projekt wurde von [sahomm](https://github.com/sahomm) mit Unterstützung von Claude
+(Anthropic) entwickelt.
+
 > **Disclaimer:** Dieses Projekt ist ein privates Community-Projekt und steht in keiner
 > Verbindung zu OCHSNER Wärmepumpen GmbH. Alle Markennamen gehören ihren jeweiligen Inhabern.
 > Das OCHSNER-Logo (`custom_components/ochsner_ote_viewer/brand/`) wird, wie in der
@@ -97,11 +100,22 @@ verifiziert werden**. Sie werden deshalb nur angelegt, wenn du das bei der Einri
 explizit aktivierst. Hast du eine dieser Funktionen und kannst die Werte bestätigen (oder
 korrigieren) – bitte über ein Issue oder einen PR melden.
 
-**Effizienz-Sensor (JAZ):** Der Sensor "Effizienz seit Inbetriebnahme (Jahresarbeitszahl/
-JAZ)" berechnet sich aus Heizenergie ÷ elektrischer Energie – beides Zähler seit
-Inbetriebnahme, also eine **Lebenszeit-Durchschnitt**, keine echte kalenderjährliche JAZ
-und kein Momentanwert. Die Kombination der kWh-/MWh-Registerpaare (angenommen als
-`MWh × 1000 + kWh`) ist ebenfalls nicht explizit im Handbuch belegt, nur plausibilisiert.
+**Effizienz-Sensor (JAZ):** Der Sensor "Effizienz seit erster Messung (Jahresarbeitszahl/
+JAZ)" berechnet sich aus Heizenergie ÷ elektrischer Energie – **nicht** aus den rohen
+Lebenszeit-Zählerständen, sondern aus der **Veränderung seit der ersten erfolgreichen
+Messung** (bzw. seit einem erkannten Zähler-Reset). Grund: Ochsners eigener
+Heizenergie-Zähler läuft seit Inbetriebnahme der Anlage (oft Jahre), ein frisch
+hinzugefügter externer Stromzähler aber erst seit wenigen Tagen – eine Division der
+rohen Lebenszeit-Werte ergäbe einen sinnlos hohen Wert (in der Praxis beobachtet: JAZ von
+126 statt eines realistischen Werts um 3–5). Das gilt unabhängig davon, ob die
+elektrische Seite aus Ochsners eigenem Register oder einem externen Sensor kommt.
+
+⏳ **Das bedeutet: Nach dem Einrichten (oder nach einem erkannten Zähler-Reset) dauert es
+etwas, bis ein verlässlicher Wert entsteht** – wie lange, hängt davon ab, wie viel die
+Wärmepumpe in der Zwischenzeit heizt. In der ersten Zeit ist der Wert "nicht verfügbar"
+oder noch wenig aussagekräftig, das ist normal. Die Kombination der kWh-/MWh-Registerpaare
+(angenommen als `MWh × 1000 + kWh`) ist zusätzlich nicht explizit im Handbuch belegt, nur
+plausibilisiert.
 Zusätzlich braucht dieser Sensor ein Ochsner-seitiges Stromzähler-Zubehör an der OTE, das
 viele Anlagen (auch die, an der dieses Projekt entstanden ist) nicht haben – dann bleibt
 er dauerhaft "nicht verfügbar", das ist normal.

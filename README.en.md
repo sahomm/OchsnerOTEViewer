@@ -5,6 +5,9 @@
 Home Assistant integration for reading data from OCHSNER heat pumps with **OTE controller
 generation** via the official **OTE Modbus Gateway** (TEM ZIF180, eBUS↔Modbus RTU).
 
+This project was built by [sahomm](https://github.com/sahomm) with the help of Claude
+(Anthropic).
+
 > **Disclaimer:** This is a private community project and is not affiliated with OCHSNER
 > Wärmepumpen GmbH in any way. All trademarks belong to their respective owners. The
 > OCHSNER logo (`custom_components/ochsner_ote_viewer/brand/`) is used, as is common
@@ -97,11 +100,20 @@ verified against a system that actually has these features**. They are therefore
 created if you explicitly enable them during setup. If you have one of these features and
 can confirm (or correct) the readings, please open an issue or PR.
 
-**Efficiency sensor (SPF):** the "Efficiency since commissioning (seasonal performance
-factor/SPF)" sensor is heating energy ÷ electrical energy - both lifetime counters since
-commissioning, so this is a **lifetime average**, not a true calendar-year SPF and not an
-instantaneous value. Combining the kWh/MWh register pairs (assumed as `MWh × 1000 + kWh`)
-is likewise not explicitly documented in the manual, only sanity-checked. This sensor also
+**Efficiency sensor (SPF):** the "Efficiency since first measurement (seasonal performance
+factor/SPF)" sensor is heating energy ÷ electrical energy - but **not** from the raw
+lifetime counter values, from the **change since the first successful reading** (or since
+a detected counter reset) instead. Why: Ochsner's own heating-energy counter runs since the
+system's commissioning (often years), while a freshly added external electricity meter only
+has a few days of data - dividing the raw lifetime totals would produce a meaningless number
+(observed in practice: an SPF of 126 instead of a realistic ~3-5). This applies regardless of
+whether the electrical side comes from Ochsner's own register or an external sensor.
+
+⏳ **This means it takes a while after setup (or after a detected counter reset) before this
+sensor settles on a reliable value** - how long depends on how much the heat pump actually
+heats in the meantime. Expect "unavailable" or a still-unreliable value for a while at first,
+that's expected. Combining the kWh/MWh register pairs (assumed as `MWh × 1000 + kWh`) is
+likewise not explicitly documented in the manual, only sanity-checked. This sensor also
 needs an Ochsner-side electricity-meter accessory on the OTE that many installations
 (including the one this project was built against) don't have - it will then permanently
 read "unavailable", which is expected.

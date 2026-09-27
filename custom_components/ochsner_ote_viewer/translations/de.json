@@ -79,7 +79,7 @@
       "heat_pump_operating_hours": { "name": "Betriebsstunden Wärmepumpe" },
       "auxiliary_heater_switch_cycles": { "name": "Schaltzyklen Zusatzheizung" },
       "auxiliary_heater_operating_hours": { "name": "Betriebsstunden Zusatzheizung" },
-      "lifetime_efficiency_jaz": { "name": "Effizienz seit Inbetriebnahme (Jahresarbeitszahl/JAZ)" },
+      "lifetime_efficiency_jaz": { "name": "Effizienz seit erster Messung (Jahresarbeitszahl/JAZ)" },
       "computed_cop_flow_method": { "name": "COP, berechnet (Durchfluss-Methode)" }
     }
   }
