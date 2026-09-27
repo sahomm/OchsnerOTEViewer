@@ -140,8 +140,8 @@ sensor you pick actually measures the heat pump's own circuit, not your whole ho
 your Home Assistant installation for known meter devices by itself. If one is found, it
 shows up above as a ready-made choice ("Recognized meter device") - picking it fills in the
 6 fields below automatically (`meter_profiles.py`). There's deliberately no open "pick any
-device" field: that leads to wrong matches quickly, see [DECISIONS.md](DECISIONS.md).
-Currently supported:
+device" field: an earlier version of this had exactly that problem (e.g. offering individual
+phase sub-devices instead of the correct hub device). Currently supported:
 
 | Device | Status |
 |---|---|
