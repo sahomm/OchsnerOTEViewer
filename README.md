@@ -186,7 +186,12 @@ nur, während der Statuscode Wärmepumpe "läuft" anzeigt – direkt beim Abscha
 elektrische Leistung fast augenblicklich auf 0, während Durchfluss und Temperaturspreizung
 durch die Trägheit von Wasser/Pumpe noch kurz nachlaufen; ohne diese Absicherung würde die
 Division kurzzeitig einen sinnlosen Ausreißer liefern (beobachtet: COP 167 während eines
-Abschaltvorgangs). Er ist bewusst
+Abschaltvorgangs). Zusätzlich braucht es eine elektrische Mindestleistung (0,3 kW) – bei einem
+zweiten Zyklus zeigte sich, dass der Kompressor elektrisch schon auf Stand-by-Niveau (~9 W)
+abschalten kann, während Statuscode und Durchfluss noch für rund 30 Sekunden "läuft" anzeigen
+(beobachtet: COP 2328 in genau diesem Fenster) – weder Status noch Durchfluss bilden den
+elektrischen Zustand hier zuverlässig ab, deshalb wird die Leistung selbst direkt geprüft. Er
+ist bewusst
 ein **eigener, zusätzlicher** Sensor, kein Ersatz für das Ochsner-Register – über die
 kommende Heizsaison lassen sich beide vergleichen, um herauszufinden, was das undokumentierte
 Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, unverifiziert)" ist
@@ -206,17 +211,26 @@ Zwei Sensoren sind zusätzlich standardmäßig **ausgeblendet** (nicht deaktivie
 im Hintergrund weiter mit, für die geplante Korrelations-Analyse über die Heizsaison), weil
 ihr Rohwert für sich genommen eher verwirrt als hilft:
 
-- **"COP (Ochsner-Register, unverifiziert)"** – per drei direkten Live-Abfragen bestätigt
-  (nicht vermutet), während des bislang einzigen beobachteten Heizzyklus seit Installation der
-  Integration: Leerlauf davor, dann aktiver Betrieb (Statuscode Wärmepumpe = 1, echte ~21 kW
-  Wärmeleistung über den Durchfluss gemessen), dann wieder Leerlauf nach einem
-  Abschaltvorgang – das Register zeigte bei allen drei Momenten exakt denselben Wert (25,5),
-  auch während des laufenden Betriebs. Es reagiert also zumindest bei diesem einen Zyklus
-  nicht live auf den tatsächlichen Betrieb, wie es der Name nahelegt – ob das die Regel ist,
-  zeigen erst weitere Heizzyklen über die Saison. Warum, ist offen (z. B. ein selten
-  aktualisierter interner Parameter oder ein fester Auslegungswert statt einer Messung).
+- **"COP (Ochsner-Register, unverifiziert)"** – über **zwei unabhängige, komplette
+  Heizzyklen** hinweg bestätigt (nicht vermutet), inklusive der stündlichen Langzeitstatistik
+  (min=mean=max=25,5 durchgehend über die komplette Laufstunde des zweiten Zyklus): Das
+  Register zeigt konstant denselben Wert (25,5), auch während echten Betriebs mit ~21 kW
+  gemessener Wärmeleistung. Es reagiert also – zumindest in dem, was bisher beobachtet wurde –
+  nicht live auf den tatsächlichen Betrieb, wie es der Name nahelegt. Warum, ist offen (z. B.
+  ein selten aktualisierter interner Parameter oder ein fester Auslegungswert statt einer
+  Messung).
 - **"Heizleistung (roh, unverifiziert)"** – zeigt Werte wie "-100", die ohne Kontext nicht
-  einzuordnen sind.
+  einzuordnen sind. Die minutengenaue Historie eines kompletten Zyklus liefert eine neue,
+  begründete Vermutung, was dieses Register eigentlich ist: **wahrscheinlich keine
+  Heizleistung in kW**, sondern eher eine Art internes Modulations-/Rampensignal.
+  Beobachtetes Muster: konstant -100 im Leerlauf, Anstieg auf +100 innerhalb ~1 Minute beim
+  Start, dort konstant für die gesamte Volllastphase (~21 Minuten, während die unabhängig
+  gemessene Wärmeleistung stabil bei ~21 kW lag – keine Korrelation zum tatsächlichen,
+  variierenden physikalischen Wert), dann beim Abschalten ein fast linearer Abstieg von +100
+  auf -100 über ~14 Ein-Minuten-Schritte. Dieses symmetrische ±100-Rampenmuster, gekoppelt an
+  Start-/Stopp-Zeitpunkte statt an die tatsächliche Wärmeleistung, passt viel eher zu einem
+  Kompressor-Frequenz-/Kapazitäts-Sanftanlauf-/Sanftauslauf-Signal als zu einer kW-Messung –
+  weiterhin nur eine Hypothese, weitere Zyklen werden zeigen, ob das Muster stabil bleibt.
 
 Ausgeblendete Sensoren lassen sich jederzeit über die Entity-Einstellungen wieder sichtbar
 machen. Bei den beiden berechneten Kern-Sensoren (JAZ, COP berechnet) sowie bei Zähler- und

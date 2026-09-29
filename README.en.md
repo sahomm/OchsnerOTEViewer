@@ -180,8 +180,13 @@ instantaneous value like COP needs instantaneous power, not energy counters. It'
 computed while the heat pump status code shows "running" - right as the compressor shuts
 off, electrical draw drops to near 0 almost instantly while flow and temperature spread are
 still trailing off from pump/water inertia; without this guard the division would briefly
-spike to a meaningless value (observed: a COP of 167 during a shutdown transient). It's
-deliberately a **separate, additional** sensor, not a replacement for the Ochsner register -
+spike to a meaningless value (observed: a COP of 167 during a shutdown transient). It also
+requires a minimum electrical power (0.3 kW) - a second cycle showed the compressor can drop
+to standby-level draw (~9 W) electrically while the status code and flow both still say
+"running" for another ~30 seconds - neither reliably reflects the electrical state during
+that handover, so the power itself is checked directly (observed: a COP of 2328 in exactly
+that window). It's deliberately a **separate, additional** sensor, not a replacement for the
+Ochsner register -
 comparing the two over the coming heating season is the point, to work out what that
 undocumented register actually represents. The "Heating capacity (raw, unverified)" sensor is
 enabled by default for exactly this reason (but hidden, see next section), so Home
@@ -200,17 +205,24 @@ Two sensors are additionally **hidden** by default (not disabled - they keep run
 background for the planned correlation analysis over the heating season), because their raw
 value is more confusing than helpful on its own:
 
-- **"COP (Ochsner register, unverified)"** - confirmed via three direct live polls (not just
-  suspected), during the only heating cycle observed so far since the integration was
-  installed: idle before, then actively running (heat pump status = 1, real ~21 kW thermal
-  output measured via flow), then idle again after a shutdown transient - the register read
-  the exact same value (25.5) at all three moments, including while actually running. It
-  didn't respond live to actual operation the way its name suggests during this one cycle -
-  whether that holds up over more
-  cycles across the season remains to be seen. Why is unclear either way (e.g. a rarely-updated
-  internal parameter, or a fixed design value rather than a measurement).
+- **"COP (Ochsner register, unverified)"** - confirmed over **two independent, complete
+  heating cycles** now (not just suspected), including hourly long-term statistics
+  (min=mean=max=25.5 straight through the second cycle's entire running hour): the register
+  holds the same constant value (25.5), including during real operation with ~21 kW measured
+  thermal output. So it doesn't respond live to actual operation the way its name suggests -
+  at least not in what's been observed so far. Why is unclear either way (e.g. a
+  rarely-updated internal parameter, or a fixed design value rather than a measurement).
 - **"Heating capacity (raw, unverified)"** - shows values like "-100" that don't mean
-  anything without context.
+  anything without context. The minute-by-minute history of one full cycle gives a new,
+  evidence-based guess at what this register actually is: **probably not a heating power in
+  kW at all**, more likely some kind of internal modulation/ramp signal. Observed pattern:
+  pinned at -100 while idle, rising to +100 within about a minute at startup, holding there
+  for the entire steady-state run (~21 minutes, while independently-measured thermal output
+  stayed a steady ~21 kW - no correlation with the actual, varying physical value), then a
+  near-linear descent from +100 back to -100 over ~14 one-minute steps at shutdown. That
+  symmetric ±100 ramp, tied to start/stop timing rather than actual thermal output, fits a
+  compressor frequency/capacity soft-start/soft-stop signal much better than a kW
+  measurement - still just a hypothesis, more cycles will show whether the pattern holds.
 
 Hidden sensors can be made visible again any time from the entity's settings. For the two
 core computed sensors (SPF, computed COP) as well as status-code and counter names, the

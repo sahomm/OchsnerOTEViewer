@@ -50,9 +50,21 @@ _POWER_UNIT_TO_KW = {
 _WATER_SPECIFIC_HEAT_KJ_PER_KG_K = 4.186
 
 # Observed value of heat_pump_status ("Statuscode Wärmepumpe") while the compressor is
-# actually running. Only empirically observed (0 = idle, 1 = running) - other values
-# are possible but unobserved on this system; see const.py's SENSORS description.
+# actually running. Only empirically observed (0 = idle, 1 = running, 2 = a brief
+# transitional state seen for ~1 minute right before switching to 1, likely a startup
+# ramp) - other values are possible but unobserved on this system; see const.py's
+# SENSORS description.
 _HEAT_PUMP_STATUS_RUNNING = 1
+
+# Minimum electrical power (kW, summed across configured phases) required before
+# trusting it as "the compressor is genuinely drawing power" for the flow-method COP.
+# Observed real operation so far: ~5-8 kW combined. Observed standby/handover draw:
+# single-digit watts (~0.009 kW measured during one shutdown transient). This is
+# comfortably below any real operating point seen so far and comfortably above
+# standby noise - not a guess, but also not yet tested against a full heating season,
+# so a heat pump that modulates down much further than observed here could in
+# principle dip below this and get wrongly excluded; revisit if that's ever seen.
+_MIN_ELECTRICAL_KW_FOR_COP = 0.3
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -234,14 +246,23 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         from pump/thermal inertia, which briefly divides a real (small) thermal power
         by a near-zero electrical power and spikes this ratio to a meaningless value
         (seen: COP=167 during a shutdown transient). Gating on the status code avoids
-        that transient entirely instead of guessing a flow/power threshold."""
+        that transient - but a second, independent shutdown transient was later
+        observed *within* the heat_pump_status=1 window itself: the compressor's own
+        electrical draw can drop to near-standby (~9 W measured) up to ~30s *before*
+        Ochsner's status code catches up and flips to idle - status and flow both still
+        said "running" at that exact poll, yet electrical power had already collapsed
+        (seen: COP=2328.24). Neither status nor flow reliably track the compressor's
+        real electrical state during this handover, so the denominator itself is
+        checked directly as a second, independent guard."""
         if data.get("heat_pump_status") != _HEAT_PUMP_STATUS_RUNNING:
             return None
 
         electrical_kw = self._sum_external_sensors(
             self._external_power_entity_ids, _POWER_UNIT_TO_KW
         )
-        if not electrical_kw:  # None or 0 - can't divide, or nothing configured
+        if not electrical_kw or electrical_kw < _MIN_ELECTRICAL_KW_FOR_COP:
+            # None/0 (nothing configured), or too close to standby draw to be the
+            # compressor actually running - see docstring above.
             return None
 
         flow_l_per_min = data.get("volume_flow")

@@ -253,24 +253,24 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         unit=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
     ),
-    # Confirmed via 3 separate live polls, not just guessed: idle before, actively
-    # running (heat_pump_status=1, real ~21 kW thermal output measured via
-    # volume_flow), then idle again after a shutdown transient - this was the heat
-    # pump's only heating cycle observed so far since the integration was installed.
-    # The register read the exact same value (25.5) every single time, including
-    # *during* that run. So it does not track live/instantaneous compressor operation
-    # the way its name suggests, at least not during that one cycle. (Note: a single
-    # unchanged entry
-    # in HA's own state history proves nothing by itself - the recorder only ever logs
-    # a new row when a value changes, so a genuinely constant register would look
-    # identical there; the 3 live polls across different real operating states are
-    # what actually establishes this.) Whether this is a slow-updating internal
-    # parameter, a fixed rated/design value, or something else entirely is unknown -
-    # not guessed at further here; more heating cycles over the season will show
-    # whether this was a one-off or the norm. Hidden by default (not disabled) so it
-    # doesn't mislead users into treating it as a live COP reading, while staying
-    # enabled/recorded for comparison against computed_cop_flow_method over the coming
-    # heating season (see that sensor's own comment).
+    # Confirmed via direct live polls and long-term statistics across 2 independent
+    # heating cycles so far, not just guessed: idle before, actively running
+    # (heat_pump_status=1, real ~21 kW thermal output measured via volume_flow), then
+    # idle again - the register read the exact same value (25.5) every single time,
+    # including *during* both runs (hourly statistics min=mean=max=25.5 straight
+    # through the second cycle's running hour too). So it does not track
+    # live/instantaneous compressor operation the way its name suggests, at least not
+    # in what's been observed so far. (Note: an unchanged entry in HA's own state
+    # history proves nothing by itself - the recorder only ever logs a new row when a
+    # value changes, so a genuinely constant register would look identical there; the
+    # direct live polls and the statistics spanning an active running hour are what
+    # actually establish this.) Whether this is a slow-updating internal parameter, a
+    # fixed rated/design value, or something else entirely is unknown - not guessed at
+    # further here; more heating cycles over the season will keep testing whether this
+    # holds up. Hidden by default (not disabled) so it doesn't mislead users into
+    # treating it as a live COP reading, while staying enabled/recorded for comparison
+    # against computed_cop_flow_method over the coming heating season (see that
+    # sensor's own comment).
     OchsnerSensorDescription(
         key="compressor_cop",
         offset=21,
@@ -312,6 +312,20 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
     # heating season to work out what this register actually represents. Hidden by
     # default (not disabled) since a raw, sign-flipping, unverified-unit value like
     # "-100" is actively confusing to look at directly - it keeps recording either way.
+    #
+    # UPDATED HYPOTHESIS from one full cycle's minute-by-minute history: this is very
+    # likely NOT a heating capacity/power value at all, despite the manual's naming.
+    # Observed shape: pinned at -100 while idle; jumps to +100 within ~1 minute of
+    # startup and holds exactly there for the entire steady-state run (~21 minutes,
+    # while independently-measured thermal output was a steady ~21 kW - no
+    # correlation with the actual, varying physical output); then ramps close to
+    # linearly from +100 down to -100 over ~14 one-minute steps at shutdown, arriving
+    # back at -100 right as the pump fully stops. That shape - a clean, symmetric
+    # ±100 ramp keyed to start/stop timing rather than to actual thermal output - reads
+    # much more like an internal modulation/ramp signal (e.g. a compressor
+    # frequency/capacity soft-start-soft-stop curve, on some ±100 internal scale) than
+    # a kW measurement. Still just a hypothesis, not confirmed - keep watching more
+    # cycles for whether the ramp shape and duration stay this consistent.
     OchsnerSensorDescription(
         key="heating_capacity",
         offset=34,
