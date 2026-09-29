@@ -313,19 +313,26 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
     # default (not disabled) since a raw, sign-flipping, unverified-unit value like
     # "-100" is actively confusing to look at directly - it keeps recording either way.
     #
-    # UPDATED HYPOTHESIS from one full cycle's minute-by-minute history: this is very
-    # likely NOT a heating capacity/power value at all, despite the manual's naming.
-    # Observed shape: pinned at -100 while idle; jumps to +100 within ~1 minute of
-    # startup and holds exactly there for the entire steady-state run (~21 minutes,
-    # while independently-measured thermal output was a steady ~21 kW - no
-    # correlation with the actual, varying physical output); then ramps close to
-    # linearly from +100 down to -100 over ~14 one-minute steps at shutdown, arriving
-    # back at -100 right as the pump fully stops. That shape - a clean, symmetric
-    # ±100 ramp keyed to start/stop timing rather than to actual thermal output - reads
-    # much more like an internal modulation/ramp signal (e.g. a compressor
-    # frequency/capacity soft-start-soft-stop curve, on some ±100 internal scale) than
-    # a kW measurement. Still just a hypothesis, not confirmed - keep watching more
-    # cycles for whether the ramp shape and duration stay this consistent.
+    # UPDATED HYPOTHESIS (2026-09-29, 2 cycles observed): this is very likely NOT a
+    # heating capacity/power value at all, despite the manual's naming - and it's not a
+    # fixed-duration ramp timer either (an earlier version of this comment guessed
+    # that from the first cycle alone). Cross-referencing minute-by-minute values
+    # against system_temperature/system_temperature_setpoint ("Anlagentemperatur"/
+    # "-Sollwert") during a second cycle showed this register tracking
+    # (setpoint - actual temperature) almost exactly, clamped to ±100:
+    #   deviation +4.2 C -> 100 (saturated)   deviation +0.3 C -> 15
+    #   deviation +1.4 C -> 75                deviation +0.1 C -> 5
+    #   deviation +1.0 C -> 50                deviation -0.3 C -> -5
+    #   deviation +0.7 C -> 35                deviation -1.2 C -> -45
+    # i.e. large shortfall below setpoint -> saturated +100 (maximum demand), closing
+    # in on setpoint -> value falls roughly proportionally, overshooting past setpoint
+    # -> goes negative. This reads as a proportional (P/PID-style) heating demand/
+    # modulation output on a ±100 internal scale, not a kW measurement - the
+    # "ramp" seen in the first cycle was this same mechanism, just coincidentally
+    # looking timer-like because the temperature happened to cross setpoint at a
+    # fairly steady rate that time. Still a hypothesis, not confirmed by Ochsner
+    # documentation - keep watching more cycles, ideally ones with a different
+    # setpoint/demand situation, to stress-test it.
     OchsnerSensorDescription(
         key="heating_capacity",
         offset=34,

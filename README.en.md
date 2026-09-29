@@ -213,16 +213,25 @@ value is more confusing than helpful on its own:
   at least not in what's been observed so far. Why is unclear either way (e.g. a
   rarely-updated internal parameter, or a fixed design value rather than a measurement).
 - **"Heating capacity (raw, unverified)"** - shows values like "-100" that don't mean
-  anything without context. The minute-by-minute history of one full cycle gives a new,
-  evidence-based guess at what this register actually is: **probably not a heating power in
-  kW at all**, more likely some kind of internal modulation/ramp signal. Observed pattern:
-  pinned at -100 while idle, rising to +100 within about a minute at startup, holding there
-  for the entire steady-state run (~21 minutes, while independently-measured thermal output
-  stayed a steady ~21 kW - no correlation with the actual, varying physical value), then a
-  near-linear descent from +100 back to -100 over ~14 one-minute steps at shutdown. That
-  symmetric ±100 ramp, tied to start/stop timing rather than actual thermal output, fits a
-  compressor frequency/capacity soft-start/soft-stop signal much better than a kW
-  measurement - still just a hypothesis, more cycles will show whether the pattern holds.
+  anything without context. Refined across two cycles: **probably not a heating power in kW**
+  and not a fixed-duration timer either (an earlier version of this guess assumed that, see
+  git history) - more likely a **proportional demand/control signal**. During a second cycle,
+  the value tracked "setpoint minus actual system temperature" almost exactly, clamped to
+  ±100:
+
+  | Setpoint − actual deviation | heating_capacity |
+  |---|---|
+  | +4.2 °C | 100 (saturated) |
+  | +1.0 °C | 50 |
+  | +0.1 °C | 5 |
+  | −0.3 °C | −5 |
+  | −1.2 °C | −45 |
+
+  Large shortfall below setpoint → saturates at +100 (maximum demand), closing in on setpoint
+  → value falls roughly proportionally, overshooting past setpoint → goes negative. The
+  first cycle's seemingly "ramp-like" pattern was likely the same mechanism, just coinciding
+  with a fairly steady temperature rise that time. Still just a hypothesis - more cycles
+  (ideally with a different setpoint/demand situation) will show whether it holds up.
 
 Hidden sensors can be made visible again any time from the entity's settings. For the two
 core computed sensors (SPF, computed COP) as well as status-code and counter names, the

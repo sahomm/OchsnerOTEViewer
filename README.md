@@ -220,17 +220,25 @@ ihr Rohwert für sich genommen eher verwirrt als hilft:
   ein selten aktualisierter interner Parameter oder ein fester Auslegungswert statt einer
   Messung).
 - **"Heizleistung (roh, unverifiziert)"** – zeigt Werte wie "-100", die ohne Kontext nicht
-  einzuordnen sind. Die minutengenaue Historie eines kompletten Zyklus liefert eine neue,
-  begründete Vermutung, was dieses Register eigentlich ist: **wahrscheinlich keine
-  Heizleistung in kW**, sondern eher eine Art internes Modulations-/Rampensignal.
-  Beobachtetes Muster: konstant -100 im Leerlauf, Anstieg auf +100 innerhalb ~1 Minute beim
-  Start, dort konstant für die gesamte Volllastphase (~21 Minuten, während die unabhängig
-  gemessene Wärmeleistung stabil bei ~21 kW lag – keine Korrelation zum tatsächlichen,
-  variierenden physikalischen Wert), dann beim Abschalten ein fast linearer Abstieg von +100
-  auf -100 über ~14 Ein-Minuten-Schritte. Dieses symmetrische ±100-Rampenmuster, gekoppelt an
-  Start-/Stopp-Zeitpunkte statt an die tatsächliche Wärmeleistung, passt viel eher zu einem
-  Kompressor-Frequenz-/Kapazitäts-Sanftanlauf-/Sanftauslauf-Signal als zu einer kW-Messung –
-  weiterhin nur eine Hypothese, weitere Zyklen werden zeigen, ob das Muster stabil bleibt.
+  einzuordnen sind. Über zwei Zyklen hinweg verfeinert: **wahrscheinlich keine Heizleistung in
+  kW** und auch kein fester Zeit-Timer (eine frühere Version dieser Vermutung ging davon aus,
+  siehe Git-Historie), sondern ein **proportionales Regel-/Bedarfssignal**. Beim zweiten Zyklus
+  ließ sich der Wert fast exakt der Abweichung "Anlagentemperatur-Sollwert minus
+  Anlagentemperatur" zuordnen, gedeckelt bei ±100:
+
+  | Abweichung Soll−Ist | heating_capacity |
+  |---|---|
+  | +4,2 °C | 100 (gesättigt) |
+  | +1,0 °C | 50 |
+  | +0,1 °C | 5 |
+  | −0,3 °C | −5 |
+  | −1,2 °C | −45 |
+
+  Große Unterdeckung → gesättigt bei +100 (maximaler Bedarf), Annäherung an den Sollwert →
+  Wert fällt etwa proportional, Überschreiten des Sollwerts → negativ. Das erste, scheinbar
+  "rampenartige" Muster war vermutlich derselbe Mechanismus, nur zufällig mit einem gleichmäßig
+  verlaufenden Temperaturanstieg. Weiterhin nur eine Hypothese – weitere Zyklen (idealerweise
+  mit anderer Soll-/Ist-Konstellation) werden zeigen, ob sie standhält.
 
 Ausgeblendete Sensoren lassen sich jederzeit über die Entity-Einstellungen wieder sichtbar
 machen. Bei den beiden berechneten Kern-Sensoren (JAZ, COP berechnet) sowie bei Zähler- und
