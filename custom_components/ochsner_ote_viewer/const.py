@@ -409,9 +409,19 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         state_class=None,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # scale=0.1: this register counts in 0.1 kWh steps, not whole kWh. Verified against
+    # a real cycle (2026-10-01): the register advanced 94 counts, which is 9.4 kWh at
+    # 0.1 kWh/count - matching an independent flow x delta-T thermal estimate (~9.6 kWh)
+    # to within 2 %, with the Shelly-measured electrical energy for that cycle (3.15 kWh)
+    # giving a cycle COP of ~3.0 (same as computed_cop_flow_method). Treated as whole
+    # kWh, the JAZ came out ~10x too high (~29). The kWh/MWh *rollover* behaviour is not
+    # yet observed (the register is at ~4250 counts, i.e. ~425 kWh) - still unconfirmed.
+    # Only this register is verified; electrical_energy_kwh/cooling_energy_kwh have no
+    # evidence either way and are left unscaled.
     OchsnerSensorDescription(
         key="heating_energy_kwh",
         offset=47,
+        scale=0.1,
         unit=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -478,9 +488,9 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
 # totals - see _delta_since_baseline for why (a years-old Ochsner counter divided by a
 # freshly-added external meter's few-day counter is meaningless). ASSUMPTION, not
 # explicitly documented in the Ochsner PDF: the kWh/MWh register pairs are combined as
-# mwh*1000 + kwh, the same pattern the manual spells out for Schaltzyklen/Betriebsstunden
-# - but that combination note is only given for those, not restated for the energy
-# pairs. This sensor is only ever populated once electrical_energy_kwh/mwh (or the
+# mwh*1000 + kwh (with heating_energy_kwh already scaled to real kWh, see its comment) -
+# the manual only spells out a combination for Schaltzyklen/Betriebsstunden, not for the
+# energy pairs. This sensor is only ever populated once electrical_energy_kwh/mwh (or the
 # configured external sensors) are themselves available, which for Ochsner's own
 # register requires an electricity meter accessory feeding it - many installations
 # (including the one this project was built against) will show Ochsner's own register
