@@ -125,9 +125,12 @@ elektrische Seite aus Ochsners eigenem Register oder einem externen Sensor kommt
 ⏳ **Das bedeutet: Nach dem Einrichten (oder nach einem erkannten Zähler-Reset) dauert es
 etwas, bis ein verlässlicher Wert entsteht** – wie lange, hängt davon ab, wie viel die
 Wärmepumpe in der Zwischenzeit heizt. In der ersten Zeit ist der Wert "nicht verfügbar"
-oder noch wenig aussagekräftig, das ist normal. Die Kombination der kWh-/MWh-Registerpaare
-(angenommen als `MWh × 1000 + kWh`) ist zusätzlich nicht explizit im Handbuch belegt, nur
-plausibilisiert.
+oder noch wenig aussagekräftig, das ist normal. Das Heizenergie-kWh-Register zählt in
+**0,1-kWh-Schritten** (an einem realen Zyklus gegengeprüft: 94 Zähleinheiten = 9,4 kWh, passend
+zur unabhängigen Berechnung aus Durchfluss × ΔT von ~9,6 kWh; als ganze kWh behandelt war der
+JAZ rund 10× zu hoch). Die Kombination der kWh-/MWh-Registerpaare (angenommen als
+`MWh × 1000 + kWh`) ist zusätzlich nicht explizit im Handbuch belegt, das Verhalten beim
+Überlauf in das MWh-Register wurde noch nicht beobachtet.
 Zusätzlich braucht dieser Sensor ein Ochsner-seitiges Stromzähler-Zubehör an der OTE, das
 viele Anlagen (auch die, an der dieses Projekt entstanden ist) nicht haben – dann bleibt
 er dauerhaft "nicht verfügbar", das ist normal.

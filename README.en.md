@@ -123,8 +123,11 @@ whether the electrical side comes from Ochsner's own register or an external sen
 ⏳ **This means it takes a while after setup (or after a detected counter reset) before this
 sensor settles on a reliable value** - how long depends on how much the heat pump actually
 heats in the meantime. Expect "unavailable" or a still-unreliable value for a while at first,
-that's expected. Combining the kWh/MWh register pairs (assumed as `MWh × 1000 + kWh`) is
-likewise not explicitly documented in the manual, only sanity-checked. This sensor also
+that's expected. The heating-energy kWh register counts in **0.1 kWh steps** (cross-checked
+against a real cycle: 94 counts = 9.4 kWh, matching the independent flow × ΔT estimate of
+~9.6 kWh; treated as whole kWh the SPF was roughly 10× too high). Combining the kWh/MWh
+register pairs (assumed as `MWh × 1000 + kWh`) is likewise not explicitly documented in the
+manual, and the rollover into the MWh register hasn't been observed yet. This sensor also
 needs an Ochsner-side electricity-meter accessory on the OTE that many installations
 (including the one this project was built against) don't have - it will then permanently
 read "unavailable", which is expected.
