@@ -238,15 +238,17 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         heating_delta = self._delta_since_baseline("heating", heating_total)
         electrical_delta = self._delta_since_baseline("electrical", electrical_total)
+        # Until there is real data the sensor reads 0.0 (documented in the README) rather
+        # than "Unknown", which users take for an error. Without a minimum delta, a
+        # re-anchored baseline divided by a few watts of standby draw would instead
+        # publish an arbitrary ratio, and one cycle's first minutes are too noisy to mean
+        # anything. One cycle delivers ~9 kWh of heat.
         if heating_delta is None or electrical_delta is None:
             self.reasons[key] = "waiting_for_first_measurement"
-            return None
-        # Without a minimum, a re-anchored baseline (delta 0) divided by a few watts of
-        # standby draw publishes a real-looking 0.0 - and one cycle's first minutes are
-        # too noisy to mean anything either. One cycle delivers ~9 kWh of heat.
+            return 0.0
         if heating_delta < _MIN_HEATING_DELTA_KWH_FOR_JAZ or electrical_delta <= 0:
             self.reasons[key] = "waiting_for_heating_data"
-            return None
+            return 0.0
 
         self.reasons[key] = None
         return round(heating_delta / electrical_delta, 2)
@@ -277,9 +279,14 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._external_power_entity_ids:
             self.reasons[key] = "no_power_sensors_configured"
             return None
+        # While the compressor isn't running this reads 0.0 (documented in the README)
+        # instead of "Unknown", which users take for an error. A genuine fault (power
+        # sensors unavailable) still returns None so it can't pass as a normal idle 0.
+        # Trade-off: the 0.0 is recorded in long-term statistics, so the hourly mean of
+        # a heating hour is diluted by the idle minutes - use max/history for analysis.
         if data.get("heat_pump_status") != _HEAT_PUMP_STATUS_RUNNING:
             self.reasons[key] = "compressor_not_running"
-            return None
+            return 0.0
 
         electrical_kw = self._sum_external_sensors(
             self._external_power_entity_ids, _POWER_UNIT_TO_KW
@@ -291,19 +298,19 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Too close to standby draw to be the compressor actually running - see
             # docstring above.
             self.reasons[key] = "electrical_power_below_minimum"
-            return None
+            return 0.0
 
         flow_l_per_min = data.get("volume_flow")
         flow_temp = data.get("heat_generator_flow_temperature")
         return_temp = data.get("heat_generator_return_temperature")
         if not flow_l_per_min or flow_temp is None or return_temp is None:
             self.reasons[key] = "no_flow"
-            return None
+            return 0.0
 
         delta_t = flow_temp - return_temp
         if delta_t <= 0:
             self.reasons[key] = "no_temperature_spread"
-            return None
+            return 0.0
 
         self.reasons[key] = None
         thermal_kw = flow_l_per_min * delta_t * _WATER_SPECIFIC_HEAT_KJ_PER_KG_K / 60
