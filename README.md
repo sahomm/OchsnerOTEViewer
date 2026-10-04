@@ -201,13 +201,16 @@ Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, unverif
 dafür standardmäßig aktiviert (aber ausgeblendet, siehe nächster Abschnitt), damit Home
 Assistants Langzeitstatistik seinen Verlauf ab sofort mitschreibt.
 
-**"Unbekannt" ist hier normal, kein Fehler:** Der berechnete COP ist ein Momentanwert und hat
-nur Werte, solange der Kompressor läuft – im Stillstand (den größten Teil des Tages) steht er
-bewusst auf "Unbekannt", statt eine irreführende 0 in die Statistik zu schreiben. Der JAZ
-erscheint erst, wenn seit der ersten Messung mindestens 1 kWh Heizenergie angefallen ist (ein
-Heizzyklus liefert rund 9 kWh), davor ebenfalls "Unbekannt". Beide Sensoren haben ein
-Attribut `reason`, das erklärt, warum gerade kein Wert vorliegt (z. B. `compressor_not_running`,
-`waiting_for_heating_data`, `no_power_sensors_configured`).
+**"0" bei COP und JAZ ist normal, kein Fehler:** Der berechnete COP ist ein Momentanwert und
+hat nur Werte, solange der Kompressor läuft – im Stillstand (den größten Teil des Tages) steht
+er auf **0**. Der JAZ steht auf **0**, bis seit der ersten Messung mindestens 1 kWh
+Heizenergie angefallen ist (ein Heizzyklus liefert rund 9 kWh) – er wird also erst nach dem
+ersten kompletten Heizdurchlauf berechnet. Beide Sensoren haben ein Attribut `reason`, das
+erklärt, warum gerade 0 angezeigt wird (z. B. `compressor_not_running`,
+`waiting_for_heating_data`). "Unbekannt" bedeutet dagegen eine echte Störung oder fehlende
+Konfiguration (z. B. `power_sensors_unavailable`, `no_power_sensors_configured`).
+Hinweis zur Langzeitstatistik: Die 0 im Stillstand fließt in den Stundenmittelwert des COP
+ein und verwässert ihn; für Auswertungen eignen sich der Maximalwert und der Verlauf besser.
 
 ## Sensor-Organisation
 

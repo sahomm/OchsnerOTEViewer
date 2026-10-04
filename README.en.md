@@ -195,13 +195,15 @@ undocumented register actually represents. The "Heating capacity (raw, unverifie
 enabled by default for exactly this reason (but hidden, see next section), so Home
 Assistant's long-term statistics start tracking its history from now on.
 
-**"Unknown" is normal here, not an error:** the computed COP is an instantaneous value and
-only has a value while the compressor runs - while idle (most of the day) it deliberately
-reads "Unknown" instead of writing a misleading 0 into the statistics. The SPF only appears
-once at least 1 kWh of heating energy has accrued since the first measurement (one heating
-cycle delivers about 9 kWh); until then it also reads "Unknown". Both sensors have a `reason`
-attribute explaining why there is currently no value (e.g. `compressor_not_running`,
-`waiting_for_heating_data`, `no_power_sensors_configured`).
+**"0" for COP and SPF is normal, not an error:** the computed COP is an instantaneous value
+and only has a value while the compressor runs - while idle (most of the day) it reads **0**.
+The SPF reads **0** until at least 1 kWh of heating energy has accrued since the first
+measurement (one heating cycle delivers about 9 kWh) - so it is only calculated after the
+first complete heating run. Both sensors have a `reason` attribute explaining why 0 is shown
+right now (e.g. `compressor_not_running`, `waiting_for_heating_data`). "Unknown", by
+contrast, means a real fault or missing configuration (e.g. `power_sensors_unavailable`,
+`no_power_sensors_configured`). Note on long-term statistics: the idle 0 is included in the
+COP's hourly mean and dilutes it - use the maximum and the history for analysis instead.
 
 ## Sensor organization
 
