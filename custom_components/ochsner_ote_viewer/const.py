@@ -160,6 +160,7 @@ class OchsnerDerivedSensorDescription:
     key: str
     unit: str | None = None
     state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
+    entity_category: EntityCategory | None = None
 
 
 @dataclass(frozen=True)
@@ -504,5 +505,10 @@ DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
     # and the power sensors are configured and available. This is a separate sensor from
     # compressor_cop, not a replacement - comparing the two over the coming heating season
     # is the point (see heating_capacity's comment above).
-    OchsnerDerivedSensorDescription(key="computed_cop_flow_method"),
+    # Diagnostic, next to the (hidden) native Ochsner COP register: two COPs in two
+    # different categories was confusing. Being an instantaneous value, it also reads
+    # "Unknown" whenever the compressor is idle - normal, see its "reason" attribute.
+    OchsnerDerivedSensorDescription(
+        key="computed_cop_flow_method", entity_category=EntityCategory.DIAGNOSTIC
+    ),
 )
