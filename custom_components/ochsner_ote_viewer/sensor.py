@@ -132,3 +132,11 @@ class OchsnerDerivedSensor(_OchsnerBaseSensor):
         super().__init__(coordinator, entry, description.key)
         self._attr_native_unit_of_measurement = description.unit
         self._attr_state_class = description.state_class
+        self._attr_entity_category = description.entity_category
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str] | None:
+        """Explain a missing value (e.g. compressor_not_running) - "Unknown" alone
+        looks like an error to users."""
+        reason = self.coordinator.reasons.get(self._key)
+        return {"reason": reason} if reason else None

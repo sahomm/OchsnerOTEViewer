@@ -66,6 +66,11 @@ _HEAT_PUMP_STATUS_RUNNING = 1
 # principle dip below this and get wrongly excluded; revisit if that's ever seen.
 _MIN_ELECTRICAL_KW_FOR_COP = 0.3
 
+# Minimum heating-energy delta (kWh, since the JAZ baseline) before the JAZ is shown at
+# all. Observed: one ~30 min heating cycle delivers ~9 kWh, so 1 kWh is reached within
+# the first minutes of the first cycle after setup or a counter reset.
+_MIN_HEATING_DELTA_KWH_FOR_JAZ = 1.0
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -94,6 +99,9 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._external_power_entity_ids: list[str] = [
             entry.data[key] for key in EXTERNAL_POWER_SENSOR_KEYS if entry.data.get(key)
         ]
+        # Why a derived sensor currently has no value (None while it has one) - exposed
+        # as the "reason" state attribute so "Unknown" isn't mistaken for an error.
+        self.reasons: dict[str, str | None] = {}
         # See _delta_since_baseline() - persisted across restarts in the config entry.
         self._jaz_baselines: dict[str, float] = dict(entry.data.get(STORAGE_KEY_JAZ_BASELINES, {}))
         self.client = AsyncModbusTcpClient(host=self._host, port=self._port, timeout=5)
@@ -209,9 +217,11 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         sensors if set, otherwise Ochsner's own electrical_energy_* registers (which
         most installations don't have populated - see const.py "UNVERIFIED
         REGISTERS")."""
+        key = "lifetime_efficiency_jaz"
         heating_kwh = data.get("heating_energy_kwh")
         heating_mwh = data.get("heating_energy_mwh")
         if heating_kwh is None or heating_mwh is None:
+            self.reasons[key] = "heating_energy_unavailable"
             return None
         heating_total = heating_mwh * 1000 + heating_kwh
 
@@ -222,14 +232,23 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             electrical_kwh = data.get("electrical_energy_kwh")
             electrical_mwh = data.get("electrical_energy_mwh")
             if electrical_kwh is None or electrical_mwh is None:
+                self.reasons[key] = "no_electrical_energy_source"
                 return None
             electrical_total = electrical_mwh * 1000 + electrical_kwh
 
         heating_delta = self._delta_since_baseline("heating", heating_total)
         electrical_delta = self._delta_since_baseline("electrical", electrical_total)
-        if heating_delta is None or electrical_delta is None or electrical_delta == 0:
+        if heating_delta is None or electrical_delta is None:
+            self.reasons[key] = "waiting_for_first_measurement"
+            return None
+        # Without a minimum, a re-anchored baseline (delta 0) divided by a few watts of
+        # standby draw publishes a real-looking 0.0 - and one cycle's first minutes are
+        # too noisy to mean anything either. One cycle delivers ~9 kWh of heat.
+        if heating_delta < _MIN_HEATING_DELTA_KWH_FOR_JAZ or electrical_delta <= 0:
+            self.reasons[key] = "waiting_for_heating_data"
             return None
 
+        self.reasons[key] = None
         return round(heating_delta / electrical_delta, 2)
 
     def _compute_flow_method_cop(self, data: dict[str, Any]) -> float | None:
@@ -254,27 +273,39 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         (seen: COP=2328.24). Neither status nor flow reliably track the compressor's
         real electrical state during this handover, so the denominator itself is
         checked directly as a second, independent guard."""
+        key = "computed_cop_flow_method"
+        if not self._external_power_entity_ids:
+            self.reasons[key] = "no_power_sensors_configured"
+            return None
         if data.get("heat_pump_status") != _HEAT_PUMP_STATUS_RUNNING:
+            self.reasons[key] = "compressor_not_running"
             return None
 
         electrical_kw = self._sum_external_sensors(
             self._external_power_entity_ids, _POWER_UNIT_TO_KW
         )
-        if not electrical_kw or electrical_kw < _MIN_ELECTRICAL_KW_FOR_COP:
-            # None/0 (nothing configured), or too close to standby draw to be the
-            # compressor actually running - see docstring above.
+        if electrical_kw is None:
+            self.reasons[key] = "power_sensors_unavailable"
+            return None
+        if electrical_kw < _MIN_ELECTRICAL_KW_FOR_COP:
+            # Too close to standby draw to be the compressor actually running - see
+            # docstring above.
+            self.reasons[key] = "electrical_power_below_minimum"
             return None
 
         flow_l_per_min = data.get("volume_flow")
         flow_temp = data.get("heat_generator_flow_temperature")
         return_temp = data.get("heat_generator_return_temperature")
         if not flow_l_per_min or flow_temp is None or return_temp is None:
+            self.reasons[key] = "no_flow"
             return None
 
         delta_t = flow_temp - return_temp
         if delta_t <= 0:
+            self.reasons[key] = "no_temperature_spread"
             return None
 
+        self.reasons[key] = None
         thermal_kw = flow_l_per_min * delta_t * _WATER_SPECIFIC_HEAT_KJ_PER_KG_K / 60
         return round(thermal_kw / electrical_kw, 2)
 

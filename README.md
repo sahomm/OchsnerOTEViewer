@@ -201,6 +201,14 @@ Ochsner-Register tatsächlich abbildet. Das Register "Heizleistung (roh, unverif
 dafür standardmäßig aktiviert (aber ausgeblendet, siehe nächster Abschnitt), damit Home
 Assistants Langzeitstatistik seinen Verlauf ab sofort mitschreibt.
 
+**"Unbekannt" ist hier normal, kein Fehler:** Der berechnete COP ist ein Momentanwert und hat
+nur Werte, solange der Kompressor läuft – im Stillstand (den größten Teil des Tages) steht er
+bewusst auf "Unbekannt", statt eine irreführende 0 in die Statistik zu schreiben. Der JAZ
+erscheint erst, wenn seit der ersten Messung mindestens 1 kWh Heizenergie angefallen ist (ein
+Heizzyklus liefert rund 9 kWh), davor ebenfalls "Unbekannt". Beide Sensoren haben ein
+Attribut `reason`, das erklärt, warum gerade kein Wert vorliegt (z. B. `compressor_not_running`,
+`waiting_for_heating_data`, `no_power_sensors_configured`).
+
 ## Sensor-Organisation
 
 Bei ~27 Sensoren pro Wärmepumpe lohnt sich eine Sortierung. Home Assistants Geräteseite
