@@ -161,6 +161,7 @@ class OchsnerDerivedSensorDescription:
     unit: str | None = None
     state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
     entity_category: EntityCategory | None = None
+    device_class: SensorDeviceClass | None = None
 
 
 @dataclass(frozen=True)
@@ -506,9 +507,19 @@ DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
     # compressor_cop, not a replacement - comparing the two over the coming heating season
     # is the point (see heating_capacity's comment above).
     # Diagnostic, next to the (hidden) native Ochsner COP register: two COPs in two
-    # different categories was confusing. Being an instantaneous value, it also reads
-    # "Unknown" whenever the compressor is idle - normal, see its "reason" attribute.
+    # different categories was confusing. Being an instantaneous value, it reads 0 whenever
+    # the compressor is idle - normal, see its "reason" attribute and the README.
     OchsnerDerivedSensorDescription(
         key="computed_cop_flow_method", entity_category=EntityCategory.DIAGNOSTIC
+    ),
+    # Heat pump electricity use = sum of the configured external energy sensors (all
+    # phases), so it is directly visible. Ochsner's own electrical_energy_* registers
+    # stay empty without Ochsner's meter accessory, and the external sensors otherwise
+    # only fed JAZ/COP. Only created when external energy sensors are configured.
+    OchsnerDerivedSensorDescription(
+        key="electrical_energy_external",
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
     ),
 )
