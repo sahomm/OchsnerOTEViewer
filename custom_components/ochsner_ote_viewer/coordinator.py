@@ -106,6 +106,16 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._jaz_baselines: dict[str, float] = dict(entry.data.get(STORAGE_KEY_JAZ_BASELINES, {}))
         self.client = AsyncModbusTcpClient(host=self._host, port=self._port, timeout=5)
 
+    @property
+    def has_external_power_sensors(self) -> bool:
+        """Any external power sensor configured (auto-detected or picked manually)."""
+        return bool(self._external_power_entity_ids)
+
+    @property
+    def has_external_energy_sensors(self) -> bool:
+        """Any external energy sensor configured (auto-detected or picked manually)."""
+        return bool(self._external_energy_entity_ids)
+
     async def _async_update_data(self) -> dict[str, Any]:
         if not self.client.connected:
             await self.client.connect()

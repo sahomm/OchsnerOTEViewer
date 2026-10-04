@@ -201,8 +201,12 @@ The SPF reads **0** until at least 1 kWh of heating energy has accrued since the
 measurement (one heating cycle delivers about 9 kWh) - so it is only calculated after the
 first complete heating run. Both sensors have a `reason` attribute explaining why 0 is shown
 right now (e.g. `compressor_not_running`, `waiting_for_heating_data`). "Unknown", by
-contrast, means a real fault or missing configuration (e.g. `power_sensors_unavailable`,
-`no_power_sensors_configured`). Note on long-term statistics: the idle 0 is included in the
+contrast, means a real fault (e.g. `power_sensors_unavailable`). **Sensors only with a matching meter:** the computed COP is only
+created if at least one external power sensor was configured during setup, the SPF only with
+at least one external energy sensor (or if Ochsner's own electricity-meter register delivers
+values) - regardless of brand, and regardless of whether it was auto-detected or picked
+manually. If you add a meter later, reload (or re-set-up) the integration once. Note on
+long-term statistics: the idle 0 is included in the
 COP's hourly mean and dilutes it - use the maximum and the history for analysis instead.
 
 ## Sensor organization

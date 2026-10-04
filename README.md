@@ -207,8 +207,14 @@ er auf **0**. Der JAZ steht auf **0**, bis seit der ersten Messung mindestens 1 
 Heizenergie angefallen ist (ein Heizzyklus liefert rund 9 kWh) – er wird also erst nach dem
 ersten kompletten Heizdurchlauf berechnet. Beide Sensoren haben ein Attribut `reason`, das
 erklärt, warum gerade 0 angezeigt wird (z. B. `compressor_not_running`,
-`waiting_for_heating_data`). "Unbekannt" bedeutet dagegen eine echte Störung oder fehlende
-Konfiguration (z. B. `power_sensors_unavailable`, `no_power_sensors_configured`).
+`waiting_for_heating_data`). "Unbekannt" bedeutet dagegen eine echte Störung
+(z. B. `power_sensors_unavailable`).
+**Sensoren nur bei passendem Zähler:** Der berechnete COP wird nur angelegt, wenn bei der
+Einrichtung mindestens ein externer Leistungssensor konfiguriert wurde, der JAZ nur bei
+mindestens einem externen Energiesensor (oder wenn Ochsners eigenes Stromzähler-Register
+Werte liefert) – unabhängig von Marke und davon, ob automatisch erkannt oder manuell gewählt.
+Wer später einen Zähler nachrüstet, lädt die Integration danach einmal neu bzw. richtet sie
+neu ein.
 Hinweis zur Langzeitstatistik: Die 0 im Stillstand fließt in den Stundenmittelwert des COP
 ein und verwässert ihn; für Auswertungen eignen sich der Maximalwert und der Verlauf besser.
 

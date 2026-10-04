@@ -52,8 +52,25 @@ async def async_setup_entry(
         for description in COMBINED_COUNTERS
         if _wanted(description.requires_feature)
     )
+    def _derived_wanted(key: str) -> bool:
+        # Derived sensors are only created when their input exists, so users without
+        # any matching meter don't get a permanently empty entity. Independent of the
+        # meter brand: any configured external sensor counts, however it was chosen.
+        # Evaluated at setup only - adding a meter or an Ochsner meter accessory later
+        # needs a reload of the integration.
+        if key == "computed_cop_flow_method":
+            return coordinator.has_external_power_sensors
+        if key == "lifetime_efficiency_jaz":
+            return coordinator.has_external_energy_sensors or (
+                coordinator.data.get("electrical_energy_kwh") is not None
+                and coordinator.data.get("electrical_energy_mwh") is not None
+            )
+        return True
+
     entities.extend(
-        OchsnerDerivedSensor(coordinator, entry, description) for description in DERIVED_SENSORS
+        OchsnerDerivedSensor(coordinator, entry, description)
+        for description in DERIVED_SENSORS
+        if _derived_wanted(description.key)
     )
     async_add_entities(entities)
 
