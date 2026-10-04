@@ -205,7 +205,10 @@ contrast, means a real fault (e.g. `power_sensors_unavailable`). **Sensors only 
 created if at least one external power sensor was configured during setup, the SPF only with
 at least one external energy sensor (or if Ochsner's own electricity-meter register delivers
 values) - regardless of brand, and regardless of whether it was auto-detected or picked
-manually. If you add a meter later, reload (or re-set-up) the integration once. Note on
+manually. If you add a meter later, reload (or re-set-up) the integration once. With external energy sensors there is also an
+**"Electrical energy (external)"** sensor: the sum of all configured phase meters, i.e. the heat
+pump's electricity use. Ochsner's own "Electrical energy (kWh/MWh)" sensors only deliver values
+with Ochsner's meter accessory and are not created at all otherwise. Note on
 long-term statistics: the idle 0 is included in the
 COP's hourly mean and dilutes it - use the maximum and the history for analysis instead.
 

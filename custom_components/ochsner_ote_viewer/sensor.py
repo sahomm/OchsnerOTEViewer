@@ -42,10 +42,16 @@ async def async_setup_entry(
     def _wanted(requires_feature: str | None) -> bool:
         return requires_feature is None or requires_feature in enabled_features
 
+    # Ochsner's own electricity registers read "no value" without Ochsner's meter
+    # accessory (most installations) - don't create permanently empty entities. Checked
+    # at setup only; adding the accessory later needs a reload.
+    _needs_value = {"electrical_energy_kwh", "electrical_energy_mwh"}
+
     entities: list[SensorEntity] = [
         OchsnerSensor(coordinator, entry, description)
         for description in SENSORS
         if _wanted(description.requires_feature)
+        and (description.key not in _needs_value or coordinator.data.get(description.key) is not None)
     ]
     entities.extend(
         OchsnerCombinedCounterSensor(coordinator, entry, description)
@@ -60,6 +66,8 @@ async def async_setup_entry(
         # needs a reload of the integration.
         if key == "computed_cop_flow_method":
             return coordinator.has_external_power_sensors
+        if key == "electrical_energy_external":
+            return coordinator.has_external_energy_sensors
         if key == "lifetime_efficiency_jaz":
             return coordinator.has_external_energy_sensors or (
                 coordinator.data.get("electrical_energy_kwh") is not None
@@ -150,6 +158,7 @@ class OchsnerDerivedSensor(_OchsnerBaseSensor):
         self._attr_native_unit_of_measurement = description.unit
         self._attr_state_class = description.state_class
         self._attr_entity_category = description.entity_category
+        self._attr_device_class = description.device_class
 
     @property
     def extra_state_attributes(self) -> dict[str, str] | None:

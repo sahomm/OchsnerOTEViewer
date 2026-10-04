@@ -215,6 +215,10 @@ mindestens einem externen Energiesensor (oder wenn Ochsners eigenes Stromzähler
 Werte liefert) – unabhängig von Marke und davon, ob automatisch erkannt oder manuell gewählt.
 Wer später einen Zähler nachrüstet, lädt die Integration danach einmal neu bzw. richtet sie
 neu ein.
+Mit externen Energiesensoren gibt es zusätzlich den Sensor **"Elektrische Energie (extern)"**:
+die Summe aller konfigurierten Phasen-Zähler, also der Stromverbrauch der Wärmepumpe. Ochsners
+eigene Sensoren "Elektrische Energie (kWh/MWh)" liefern nur mit Ochsners Stromzähler-Zubehör
+Werte und werden andernfalls gar nicht erst angelegt.
 Hinweis zur Langzeitstatistik: Die 0 im Stillstand fließt in den Stundenmittelwert des COP
 ein und verwässert ihn; für Auswertungen eignen sich der Maximalwert und der Verlauf besser.
 

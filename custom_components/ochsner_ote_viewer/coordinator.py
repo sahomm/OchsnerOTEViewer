@@ -154,6 +154,12 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         data["lifetime_efficiency_jaz"] = self._compute_lifetime_efficiency(data)
         data["computed_cop_flow_method"] = self._compute_flow_method_cop(data)
+        external_energy = self._sum_external_sensors(
+            self._external_energy_entity_ids, _ENERGY_UNIT_TO_KWH
+        )
+        data["electrical_energy_external"] = (
+            round(external_energy, 3) if external_energy is not None else None
+        )
 
         return data
 

@@ -80,7 +80,8 @@
       "auxiliary_heater_switch_cycles": { "name": "Auxiliary heater switch cycles" },
       "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" },
       "lifetime_efficiency_jaz": { "name": "SPF (efficiency since first measurement)" },
-      "computed_cop_flow_method": { "name": "COP (computed, flow method)" }
+      "computed_cop_flow_method": { "name": "COP (computed, flow method)" },
+      "electrical_energy_external": { "name": "Electrical energy (external)" }
     }
   }
 }

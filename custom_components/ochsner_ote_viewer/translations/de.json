@@ -80,7 +80,8 @@
       "auxiliary_heater_switch_cycles": { "name": "Schaltzyklen Zusatzheizung" },
       "auxiliary_heater_operating_hours": { "name": "Betriebsstunden Zusatzheizung" },
       "lifetime_efficiency_jaz": { "name": "JAZ (Effizienz seit erster Messung)" },
-      "computed_cop_flow_method": { "name": "COP (berechnet, Durchfluss-Methode)" }
+      "computed_cop_flow_method": { "name": "COP (berechnet, Durchfluss-Methode)" },
+      "electrical_energy_external": { "name": "Elektrische Energie (extern)" }
     }
   }
 }
