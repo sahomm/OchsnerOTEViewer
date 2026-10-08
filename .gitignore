@@ -10,3 +10,6 @@ venv/
 
 # Local-only design/history notes - not part of the public repo, see instructions
 DECISIONS.md
+# Manufacturer documentation (copyrighted PDFs) and personal to-do notes - local only
+doku/
+TODO.md
