@@ -8,12 +8,12 @@ generation** via the official **OTE Modbus Gateway** (TEM ZIF180, eBUS↔Modbus 
 This project was built by [sahomm](https://github.com/sahomm) with the help of Claude
 (Anthropic).
 
-> **Disclaimer:** This is a private community project and is not affiliated with OCHSNER
-> Wärmepumpen GmbH in any way. All trademarks belong to their respective owners. The
-> OCHSNER logo (`custom_components/ochsner_ote_viewer/brand/`) is used, as is common
-> practice across the Home Assistant community, solely to identify the product this
-> integration communicates with - without implying endorsement or partnership. Source:
-> official vector artwork from ochsner.com.
+> **Disclaimer:** This is an unofficial, private community project and is not affiliated with
+> OCHSNER Wärmepumpen GmbH in any way; it is neither supported nor endorsed by them. "OCHSNER"
+> and all other trademarks and product names mentioned belong to their respective owners and
+> are named here solely to describe compatibility (OCHSNER heat pumps with an OTE
+> controller). This project contains no OCHSNER logos or artwork; the icon is an original,
+> neutral design.
 
 ## Upgrade note (as of v0.11.0)
 

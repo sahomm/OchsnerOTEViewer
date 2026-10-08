@@ -8,12 +8,12 @@ Home Assistant Integration zum Auslesen von OCHSNER-Wärmepumpen mit **OTE-Regle
 Dieses Projekt wurde von [sahomm](https://github.com/sahomm) mit Unterstützung von Claude
 (Anthropic) entwickelt.
 
-> **Disclaimer:** Dieses Projekt ist ein privates Community-Projekt und steht in keiner
-> Verbindung zu OCHSNER Wärmepumpen GmbH. Alle Markennamen gehören ihren jeweiligen Inhabern.
-> Das OCHSNER-Logo (`custom_components/ochsner_ote_viewer/brand/`) wird, wie in der
-> Home-Assistant-Community allgemein üblich, ausschließlich zur Identifikation des Produkts
-> verwendet, mit dem diese Integration kommuniziert – ohne Billigung oder Zusammenarbeit zu
-> unterstellen. Quelle: offizielle Vektor-Grafik von ochsner.com.
+> **Disclaimer:** Dieses Projekt ist ein inoffizielles, privates Community-Projekt und steht in
+> keiner Verbindung zu OCHSNER Wärmepumpen GmbH; es wird weder von ihr unterstützt noch
+> gebilligt. "OCHSNER" und alle weiteren genannten Marken- und Produktnamen gehören ihren
+> jeweiligen Inhabern und werden hier ausschließlich genannt, um die Kompatibilität
+> (OCHSNER-Wärmepumpen mit OTE-Regler) zu beschreiben. Das Projekt enthält keine Logos oder
+> Grafiken von OCHSNER; das Icon ist eine eigene, neutrale Gestaltung.
 
 ## Update-Hinweis (ab v0.11.0)
 
