@@ -21,10 +21,6 @@ The gateway usually sits in the electrical cabinet/indoor unit, on a DIN rail, l
 "TEM ZIF180" or "eBus-Modbus IF". It has a 10-position DIP switch with the following
 layout (also printed directly on the device label):
 
-![Gateway nameplate with DIP switch legend](images/01-gateway-label.jpg)
-*The device label: top right the DIP switch legend (Terminator/Address/Parity/Baud rate),
-below the terminal assignment for ModBus (A/⊥/B) and eBus.*
-
 | Pins | Function |
 |---|---|
 | 1–3 | Baud rate |
@@ -82,13 +78,11 @@ point-to-point connection to a single RS485 master). 1 = termination resistor en
 
 ### Example: reading it correctly vs. incorrectly
 
-![DIP switches with an invalid address](images/02-dip-switch-example-invalid.jpg)
-*Example of a factory state: pins 3+4 set (baud rate 19200, even parity), but all four
+Example of a factory state: pins 3+4 set (baud rate 19200, even parity), but all four
 address pins (6–9) OFF – this is an **invalid** address. Aim for a photo this sharp and
-straight-on for your own reading.*
+straight-on for your own reading.
 
-![DIP switches with a valid address](images/03-dip-switch-example-valid.jpg)
-*After setting pin 6 to ON: same baud rate/parity as above, but now a valid address (11).*
+After setting pin 6 to ON: same baud rate/parity as above, but now a valid address (11).
 
 ## ⚠️ Important safety note about DIP switch changes
 
@@ -108,9 +102,6 @@ The gateway has two terminal blocks:
 - **ModBus:** labeled `A ⊥ B` (A, ground/shield, B)
 - **eBus:** already connected to the heat pump – do not touch this
 
-![Gateway ModBus terminal with wiring](images/04-modbus-terminal-wiring.jpg)
-*The OTE Modbus Gateway's ModBus terminal: A, ground/shield (⊥), B.*
-
 Connect your RS485 adapter with **A→A, B→B**, and if your adapter has a third terminal for
 ground/shield, connect it to the gateway's middle terminal (⊥). Per the manual, the Modbus
 cable should be twisted and shielded (Cat5/6 cable works well).
@@ -120,18 +111,10 @@ RA/RB/TA/TB terminals): use **TA and TB**, not RA/RB – the latter are only rel
 true 4-wire RS422 operation. The exact pin assignment is in the
 [Waveshare wiki, "Hardware Description" section](https://www.waveshare.com/wiki/RS232/485/422_TO_POE_ETH_(B)).
 
-![Waveshare adapter rear terminal legend](images/07-waveshare-poe-terminal-legend.jpg)
-*The rear of the Waveshare adapter: VCC/GND/PE/TB/TA/RA/RB. For RS485 you only need TA
-(A) and TB (B), plus optionally PE for the ground/shield reference.*
-
 ## Step 3: First connectivity test (USB-RS485)
 
 Before configuring anything in Home Assistant, a plain CLI connectivity test is
 recommended, to verify wiring/DIP configuration independently of HA:
-
-![USB-RS485 adapter with wiring](images/05-usb-rs485-adapter-wiring.jpg)
-*USB-RS485 adapter with labeled terminals B-/A+/GND – easy to read directly off the
-device which wire goes where.*
 
 ```bash
 pip3 install pymodbus pyserial
@@ -162,9 +145,6 @@ If this returns `1`: congratulations, your basic configuration is correct.
 
 Using the Waveshare RS232/485/422 TO POE ETH (B) as an example:
 
-![Waveshare adapter front view](images/06-waveshare-poe-front.jpg)
-*The Waveshare RS232/485/422 TO POE ETH (B) – Power/Link/Active LEDs for status.*
-
 1. **Mind the factory IP:** Out of the box, this device does **not** send a DHCP request –
    it has a fixed factory IP (typically `192.168.1.200`, subnet `255.255.255.0`). If your
    network uses a different address range, the device won't be reachable at first – this is
@@ -187,9 +167,8 @@ Using the Waveshare RS232/485/422 TO POE ETH (B) as an example:
    saved settings – this is a known limitation of this device when using the web interface
    instead of VirCom.
 
-![Waveshare configuration in its correct final state](images/08-waveshare-web-config-final.png)
-*What the configuration page should look like in the end: Device Port 502, Baud Rate
-19200, Parity Even, Protocol "Modbus TCP to RTU" (device MAC redacted in this image).*
+What the configuration page should look like in the end: Device Port 502, Baud Rate
+19200, Parity Even, Protocol "Modbus TCP to RTU".
 
 ```python
 from pymodbus.client import ModbusTcpClient
