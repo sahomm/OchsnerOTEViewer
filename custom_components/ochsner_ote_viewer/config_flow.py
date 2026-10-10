@@ -67,7 +67,7 @@ EXTERNAL_POWER_SENSOR_SELECTOR = selector.EntitySelector(
 # CONF_CONFIGURE_EXTERNAL_SENSORS checkbox on a separate step (see
 # async_step_external_sensors) instead of being shown to every user up front - most
 # installations don't have this hardware, and 6 extra fields on the very first setup
-# screen would bury the actually-required connection fields (see DECISIONS.md).
+# screen would bury the actually-required connection fields.
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
@@ -204,8 +204,8 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Optional second step, only reached if the step-1 checkbox was ticked.
 
         Offers auto-detected meter devices (see meter_profiles.discover()) plus the
-        6 manual entity fields as a fallback/override - see DECISIONS.md for why this
-        isn't a single open device picker.
+        6 manual entity fields as a fallback/override. This is not
+        a single open device picker.
         """
         errors: dict[str, str] = {}
         discovered = meter_profiles.discover(self.hass)

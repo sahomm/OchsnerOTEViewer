@@ -3,7 +3,7 @@
 Lets the config flow proactively scan the user's Home Assistant instance for a
 recognized meter device (e.g. a Shelly 3EM) during setup, instead of making everyone
 manually select 6 individual energy/power entities - or, worse, offering an open
-"pick any device" picker (tried and rejected, see DECISIONS.md: it can't tell the
+"pick any device" picker (tried and rejected: it can't tell the
 right device apart from unrelated ones, and for some profiles the right device to
 pick doesn't even carry the entities itself - see the Shelly 3EM Gen1 profile below).
 

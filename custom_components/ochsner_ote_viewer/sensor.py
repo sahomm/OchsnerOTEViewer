@@ -92,7 +92,7 @@ class _OchsnerBaseSensor(CoordinatorEntity[OchsnerOteViewerCoordinator], SensorE
         # own unique_id in config_flow.py), not entry.entry_id - entry_id is randomly
         # regenerated every time the integration is removed and re-added, which would
         # silently orphan every entity's history/long-term statistics on that occasion
-        # even though nothing about the physical device changed. See DECISIONS.md.
+        # even though nothing about the physical device changed.
         connection_id = build_connection_id(
             entry.data[CONF_HOST], entry.data[CONF_PORT], entry.data[CONF_SLAVE_ID]
         )

@@ -42,8 +42,8 @@ def build_connection_id(host: str, port: int, slave_id: int) -> str:
     the integration is removed and re-added). Used for the config entry's own
     unique_id (config_flow.py) *and* the device/entity identifiers (sensor.py) - so
     removing and re-adding the integration with the same connection details
-    reconnects to the same device/entities/history instead of orphaning it. See
-    DECISIONS.md for why this replaced an entry_id-based scheme."""
+    reconnects to the same device/entities/history instead of orphaning it.
+    This replaced an entry_id-based scheme."""
     return f"{host}:{port}:{slave_id}"
 
 
@@ -99,7 +99,7 @@ EXTERNAL_POWER_SENSOR_KEYS = (
 # pick a single HA device (e.g. a Shelly 3EM) and let meter_profiles.detect() figure
 # out its 3 energy + 3 power entities itself. Only ever used inside config_flow.py -
 # once resolved, it writes into the same CONF_EXTERNAL_*_SENSOR_* keys above, so
-# nothing downstream (coordinator.py) needs to know this shortcut exists. See
+# nothing downstream (coordinator.py) needs to know this shortcut exists.
 # meter_profiles.py and README "Kompatible Zähler" for which devices are recognized.
 CONF_EXTERNAL_METER_DEVICE = "external_meter_device"
 
