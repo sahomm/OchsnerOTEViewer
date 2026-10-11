@@ -1,7 +1,9 @@
 """DataUpdateCoordinator for the Ochsner OTE Viewer integration."""
 from __future__ import annotations
 
+import json
 import logging
+import os
 from datetime import timedelta
 from typing import Any
 
@@ -18,12 +20,19 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import (
     BASE_REGISTER,
     BLOCK_SIZE,
     COMBINED_COUNTERS,
+    CONF_DEBUG_INTERVAL,
+    CONF_DEBUG_LOGGING,
     CONF_SLAVE_ID,
+    DEBUG_AUTO_OFF_HOURS,
+    DEBUG_FILE_NAME,
+    DEBUG_MAX_BYTES,
+    DEFAULT_DEBUG_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     EXTERNAL_ENERGY_SENSOR_KEYS,
@@ -74,6 +83,17 @@ _MIN_HEATING_DELTA_KWH_FOR_JAZ = 1.0
 _LOGGER = logging.getLogger(__name__)
 
 
+def _append_debug_line(path: str, line: str) -> None:
+    """Blocking file append (run in the executor). Rotates once at DEBUG_MAX_BYTES."""
+    try:
+        if os.path.getsize(path) > DEBUG_MAX_BYTES:
+            os.replace(path, path + ".1")
+    except FileNotFoundError:
+        pass
+    with open(path, "a", encoding="utf-8") as debug_file:
+        debug_file.write(line + "\n")
+
+
 def _to_signed16(value: int) -> int:
     return value - 0x10000 if value >= 0x8000 else value
 
@@ -105,6 +125,35 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # See _delta_since_baseline() - persisted across restarts in the config entry.
         self._jaz_baselines: dict[str, float] = dict(entry.data.get(STORAGE_KEY_JAZ_BASELINES, {}))
         self.client = AsyncModbusTcpClient(host=self._host, port=self._port, timeout=5)
+
+        # Debug mode (options flow, off by default) - see const.py CONF_DEBUG_LOGGING.
+        self._base_scan_interval: int = scan_interval
+        self._debug_enabled = False
+        self._debug_started = None
+        self._debug_warned = False
+        self._previous_registers: list[int] | None = None
+        self._debug_path: str = hass.config.path(DEBUG_FILE_NAME)
+        self.apply_options()
+
+    def apply_options(self) -> None:
+        """(Re)read the options: debug mode on/off and the matching poll interval.
+        Idempotent and cheap - also called whenever the entry is updated for another
+        reason (JAZ baselines), so it must never reload anything."""
+        options = self._entry.options
+        enabled = bool(options.get(CONF_DEBUG_LOGGING, False))
+        if enabled and not self._debug_enabled:
+            self._debug_started = dt_util.utcnow()
+            self._previous_registers = None
+            _LOGGER.info("Debug logging enabled, writing to %s", self._debug_path)
+        elif self._debug_enabled and not enabled:
+            _LOGGER.info("Debug logging disabled")
+        self._debug_enabled = enabled
+        interval = (
+            options.get(CONF_DEBUG_INTERVAL, DEFAULT_DEBUG_INTERVAL)
+            if enabled
+            else self._base_scan_interval
+        )
+        self.update_interval = timedelta(seconds=interval)
 
     @property
     def has_external_power_sensors(self) -> bool:
@@ -161,7 +210,72 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             round(external_energy, 3) if external_energy is not None else None
         )
 
+        if self._debug_enabled:
+            await self._async_write_debug(registers, data)
+
         return data
+
+    async def _async_write_debug(self, registers: list[int], data: dict[str, Any]) -> None:
+        """Append one JSON line per poll. Never allowed to break the sensor update."""
+        try:
+            now = dt_util.utcnow()
+            if self._debug_started and now - self._debug_started >= timedelta(
+                hours=DEBUG_AUTO_OFF_HOURS
+            ):
+                _LOGGER.info("Debug logging switched off after %s h", DEBUG_AUTO_OFF_HOURS)
+                self.hass.config_entries.async_update_entry(
+                    self._entry,
+                    options={**self._entry.options, CONF_DEBUG_LOGGING: False},
+                )
+                return
+
+            previous = self._previous_registers
+            changed = (
+                {
+                    str(offset): [old, new]
+                    for offset, (old, new) in enumerate(zip(previous, registers))
+                    if old != new
+                }
+                if previous is not None
+                else {}
+            )
+            self._previous_registers = list(registers)
+
+            flow = data.get("volume_flow")
+            flow_temp = data.get("heat_generator_flow_temperature")
+            return_temp = data.get("heat_generator_return_temperature")
+            delta_t = (
+                round(flow_temp - return_temp, 2)
+                if flow_temp is not None and return_temp is not None
+                else None
+            )
+            thermal_kw = (
+                round(flow * delta_t * _WATER_SPECIFIC_HEAT_KJ_PER_KG_K / 60, 2)
+                if flow is not None and delta_t is not None
+                else None
+            )
+            record = {
+                "ts": dt_util.now().isoformat(),
+                "registers": list(registers),
+                "changed": changed,
+                "derived": {
+                    "delta_t": delta_t,
+                    "thermal_kw": thermal_kw,
+                    "electrical_kw": self._sum_external_sensors(
+                        self._external_power_entity_ids, _POWER_UNIT_TO_KW
+                    ),
+                    "electrical_kwh_external": data.get("electrical_energy_external"),
+                    "cop_flow_method": data.get("computed_cop_flow_method"),
+                },
+                "reasons": dict(self.reasons),
+            }
+            await self.hass.async_add_executor_job(
+                _append_debug_line, self._debug_path, json.dumps(record, separators=(",", ":"))
+            )
+        except Exception:  # noqa: BLE001
+            if not self._debug_warned:
+                self._debug_warned = True
+                _LOGGER.warning("Could not write the debug file", exc_info=True)
 
     def _sum_external_sensors(
         self, entity_ids: list[str], unit_to_base: dict[str, float]

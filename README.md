@@ -222,6 +222,12 @@ Werte und werden andernfalls gar nicht erst angelegt.
 Hinweis zur Langzeitstatistik: Die 0 im Stillstand fließt in den Stundenmittelwert des COP
 ein und verwässert ihn; für Auswertungen eignen sich der Maximalwert und der Verlauf besser.
 
+## Debug-Modus (optional)
+
+Standardmäßig aus. Aktivierung unter *Einstellungen -> Geräte & Dienste -> Ochsner OTE Viewer -> Konfigurieren*. Solange er an ist, wird jede Abfrage als eine JSON-Zeile in `ochsner_ote_viewer_debug.jsonl` im Home-Assistant-Konfigurationsordner angehängt: alle 51 Rohregister, die seit der vorigen Abfrage geänderten Register und berechnete Werte (Spreizung Vor-/Rücklauf, Wärmeleistung, externe elektrische Leistung, COP nach Durchflussmethode). Das Abfrageintervall lässt sich dabei bis auf 10 Sekunden senken (das Gateway aktualisiert seinen Datenblock alle 10 s). So lässt sich ein Heizzyklus hinterher auswerten, auch Register ohne Sensor.
+
+Die Datei enthält weder Hostnamen noch Zugangsdaten. Sie wird bei 10 MB einmal rotiert (`.jsonl.1`, also höchstens etwa 20 MB), und der Modus schaltet sich nach 72 Stunden selbst ab. Es wird nie etwas in die Wärmepumpe geschrieben.
+
 ## Sensor-Organisation
 
 Bei ~27 Sensoren pro Wärmepumpe lohnt sich eine Sortierung. Home Assistants Geräteseite

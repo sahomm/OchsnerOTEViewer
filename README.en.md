@@ -212,6 +212,12 @@ with Ochsner's meter accessory and are not created at all otherwise. Note on
 long-term statistics: the idle 0 is included in the
 COP's hourly mean and dilutes it - use the maximum and the history for analysis instead.
 
+## Debug mode (optional)
+
+Off by default. Enable it under *Settings -> Devices & services -> Ochsner OTE Viewer -> Configure*. While it is on, every poll is appended as one JSON line to `ochsner_ote_viewer_debug.jsonl` in your Home Assistant configuration folder: all 51 raw registers, the registers that changed since the previous poll, and derived values (flow/return spread, thermal power, external electrical power, flow-method COP). The poll interval can be set to as low as 10 seconds while debugging (the gateway refreshes its data block every 10 s). That makes a heating cycle analysable afterwards, including registers that have no sensor.
+
+The file contains no host name and no credentials. It is rotated once at 10 MB (`.jsonl.1`, so at most about 20 MB) and the mode switches itself off after 72 hours. Nothing is ever written to the heat pump.
+
 ## Sensor organization
 
 With ~27 sensors per heat pump, some sorting helps. Home Assistant's device page doesn't

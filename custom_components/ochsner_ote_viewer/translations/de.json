@@ -45,6 +45,18 @@
       "already_configured": "Dieses Gateway ist bereits eingerichtet"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Debug-Modus",
+        "description": "Schreibt jede Abfrage (alle Rohregister, geänderte Register, berechnete Werte) als eine JSON-Zeile in die Datei „ochsner_ote_viewer_debug.jsonl“ im Home-Assistant-Konfigurationsordner, damit ein Zyklus später ausgewertet werden kann. Standardmäßig aus. Schaltet sich nach 72 Stunden selbst ab, die Datei wird bei 10 MB rotiert. Enthält weder Host noch Zugangsdaten.",
+        "data": {
+          "debug_logging": "Debug-Datei schreiben",
+          "debug_scan_interval": "Abfrageintervall während des Debuggens (Sekunden)"
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "outdoor_temperature": { "name": "Außentemperatur" },

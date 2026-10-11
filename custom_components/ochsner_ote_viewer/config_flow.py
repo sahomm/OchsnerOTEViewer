@@ -10,6 +10,7 @@ from pymodbus.client import AsyncModbusTcpClient
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
@@ -17,6 +18,9 @@ from . import meter_profiles
 from .const import (
     BASE_REGISTER,
     CONF_CONFIGURE_EXTERNAL_SENSORS,
+    CONF_DEBUG_INTERVAL,
+    CONF_DEBUG_LOGGING,
+    DEFAULT_DEBUG_INTERVAL,
     build_connection_id,
     CONF_EXTERNAL_ENERGY_SENSOR_1,
     CONF_EXTERNAL_ENERGY_SENSOR_2,
@@ -157,6 +161,13 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._base_data: dict[str, Any] = {}
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> "OchsnerOteViewerOptionsFlow":
+        return OchsnerOteViewerOptionsFlow()
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -244,4 +255,27 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _build_external_sensors_schema(discovered), user_input or {}
             ),
             errors=errors,
+        )
+
+
+class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
+    """Options: the optional debug mode (see const.py CONF_DEBUG_LOGGING)."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_DEBUG_LOGGING, default=False): bool,
+                vol.Optional(CONF_DEBUG_INTERVAL, default=DEFAULT_DEBUG_INTERVAL): vol.All(
+                    int, vol.Range(min=10, max=300)
+                ),
+            }
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(schema, self.config_entry.options),
         )

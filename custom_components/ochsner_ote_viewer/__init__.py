@@ -17,8 +17,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.async_on_unload(entry.add_update_listener(_async_entry_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _async_entry_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Apply changed options without a reload (the entry is also updated for the JAZ
+    baselines, which must not trigger one)."""
+    coordinator: OchsnerOteViewerCoordinator | None = hass.data.get(DOMAIN, {}).get(
+        entry.entry_id
+    )
+    if coordinator is not None:
+        coordinator.apply_options()
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

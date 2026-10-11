@@ -45,6 +45,18 @@
       "already_configured": "This gateway is already configured"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Debug mode",
+        "description": "Write every poll (all raw registers, changed registers, derived values) as one JSON line to \"ochsner_ote_viewer_debug.jsonl\" in the Home Assistant config folder, so a cycle can be analysed afterwards. Off by default. Switches itself off after 72 hours and rotates the file at 10 MB. Contains no host or credentials.",
+        "data": {
+          "debug_logging": "Write debug file",
+          "debug_scan_interval": "Poll interval while debugging (seconds)"
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "outdoor_temperature": { "name": "Outdoor temperature" },

@@ -106,6 +106,17 @@ CONF_EXTERNAL_METER_DEVICE = "external_meter_device"
 DEFAULT_PORT = 502
 DEFAULT_SCAN_INTERVAL = 30
 
+# Optional debug mode (options flow, off by default): appends every poll as one JSON line
+# (all raw registers, changed registers, derived values) to a file in the HA config
+# folder so a heating cycle can be analysed afterwards without watching it live. The
+# gateway refreshes its data block every 10 s, so that is the lowest sensible interval.
+CONF_DEBUG_LOGGING = "debug_logging"
+CONF_DEBUG_INTERVAL = "debug_scan_interval"
+DEFAULT_DEBUG_INTERVAL = 10
+DEBUG_FILE_NAME = "ochsner_ote_viewer_debug.jsonl"
+DEBUG_MAX_BYTES = 10 * 1024 * 1024  # rotated once to "<file>.1", so at most ~20 MB
+DEBUG_AUTO_OFF_HOURS = 72
+
 # Feature flags used to gate sensors that could not be validated against real hardware -
 # see the "requires_feature" docstring note below for why.
 FEATURE_COOLING = "cooling"
