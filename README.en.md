@@ -127,7 +127,7 @@ that's expected. The heating-energy kWh register counts in **0.1 kWh steps** (cr
 against a real cycle: 94 counts = 9.4 kWh, matching the independent flow × ΔT estimate of
 ~9.6 kWh; treated as whole kWh the SPF was roughly 10× too high). Combining the kWh/MWh
 register pairs (assumed as `MWh × 1000 + kWh`) is likewise not explicitly documented in the
-manual, and the rollover into the MWh register hasn't been observed yet. This sensor also
+manual, and the rollover into the MWh register hasn't been observed yet. The "Heating energy (total, kWh)" sensor provides `MWh × 1000 + kWh` as one value; because the two registers do not change at the same moment, it holds the last plausible value at the rollover instead of jumping by about 1000 kWh (the same applies to the SPF calculation). This sensor also
 needs an Ochsner-side electricity-meter accessory on the OTE that many installations
 (including the one this project was built against) don't have - it will then permanently
 read "unavailable", which is expected.
@@ -216,7 +216,7 @@ COP's hourly mean and dilutes it - use the maximum and the history for analysis 
 
 Off by default. Enable it under *Settings -> Devices & services -> Ochsner OTE Viewer -> Configure*. While it is on, every poll is appended as one JSON line to `ochsner_ote_viewer_debug.jsonl` in your Home Assistant configuration folder: all 51 raw registers, the registers that changed since the previous poll, and derived values (flow/return spread, thermal power, external electrical power, flow-method COP). The poll interval can be set to as low as 10 seconds while debugging (the gateway refreshes its data block every 10 s). That makes a heating cycle analysable afterwards, including registers that have no sensor.
 
-The file contains no host name and no credentials. It is rotated once at 10 MB (`.jsonl.1`, so at most about 20 MB) and the mode switches itself off after 72 hours. Nothing is ever written to the heat pump.
+The file contains no host name and no credentials. It is rotated once at 10 MB (`.jsonl.1`, so at most about 20 MB; older data is overwritten). The duration is selectable: the default is **72 hours**, after which the mode switches itself off. The time limit is stored in the options and survives restarts, reloads and updates. With **"Unlimited"** the mode runs until you switch it off - at your own risk: it writes on every poll (write load, storage use in the configuration folder). Nothing is ever written to the heat pump.
 
 ## Sensor organization
 

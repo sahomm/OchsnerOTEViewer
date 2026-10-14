@@ -130,7 +130,7 @@ oder noch wenig aussagekräftig, das ist normal. Das Heizenergie-kWh-Register z�
 zur unabhängigen Berechnung aus Durchfluss × ΔT von ~9,6 kWh; als ganze kWh behandelt war der
 JAZ rund 10× zu hoch). Die Kombination der kWh-/MWh-Registerpaare (angenommen als
 `MWh × 1000 + kWh`) ist zusätzlich nicht explizit im Handbuch belegt, das Verhalten beim
-Überlauf in das MWh-Register wurde noch nicht beobachtet.
+Überlauf in das MWh-Register wurde noch nicht beobachtet. Der Sensor „Heizenergie (gesamt, kWh)“ liefert `MWh × 1000 + kWh` in einem Wert; weil beide Register nicht im selben Moment wechseln, hält er beim Überlauf den letzten plausiblen Wert, statt um etwa 1000 kWh zu springen (dasselbe gilt für die JAZ-Berechnung).
 Zusätzlich braucht dieser Sensor ein Ochsner-seitiges Stromzähler-Zubehör an der OTE, das
 viele Anlagen (auch die, an der dieses Projekt entstanden ist) nicht haben – dann bleibt
 er dauerhaft "nicht verfügbar", das ist normal.
@@ -226,7 +226,7 @@ ein und verwässert ihn; für Auswertungen eignen sich der Maximalwert und der V
 
 Standardmäßig aus. Aktivierung unter *Einstellungen -> Geräte & Dienste -> Ochsner OTE Viewer -> Konfigurieren*. Solange er an ist, wird jede Abfrage als eine JSON-Zeile in `ochsner_ote_viewer_debug.jsonl` im Home-Assistant-Konfigurationsordner angehängt: alle 51 Rohregister, die seit der vorigen Abfrage geänderten Register und berechnete Werte (Spreizung Vor-/Rücklauf, Wärmeleistung, externe elektrische Leistung, COP nach Durchflussmethode). Das Abfrageintervall lässt sich dabei bis auf 10 Sekunden senken (das Gateway aktualisiert seinen Datenblock alle 10 s). So lässt sich ein Heizzyklus hinterher auswerten, auch Register ohne Sensor.
 
-Die Datei enthält weder Hostnamen noch Zugangsdaten. Sie wird bei 10 MB einmal rotiert (`.jsonl.1`, also höchstens etwa 20 MB), und der Modus schaltet sich nach 72 Stunden selbst ab. Es wird nie etwas in die Wärmepumpe geschrieben.
+Die Datei enthält weder Hostnamen noch Zugangsdaten. Sie wird bei 10 MB einmal rotiert (`.jsonl.1`, also höchstens etwa 20 MB; ältere Daten werden dabei überschrieben). Die Dauer ist wählbar: Standard ist **72 Stunden**, danach schaltet sich der Modus selbst ab. Die Zeitgrenze wird in den Optionen gespeichert und bleibt bei Neustart, Neuladen und Update erhalten. Mit **„Unbegrenzt“** läuft der Modus, bis du ihn ausschaltest – auf eigene Verantwortung: Es wird bei jeder Abfrage geschrieben (Schreiblast, Speicherbedarf im Konfigurationsordner). Es wird nie etwas in die Wärmepumpe geschrieben.
 
 ## Sensor-Organisation
 
