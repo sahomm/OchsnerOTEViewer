@@ -26,10 +26,11 @@ from .const import (
     BASE_REGISTER,
     BLOCK_SIZE,
     COMBINED_COUNTERS,
+    CONF_DEBUG_DURATION,
+    CONF_DEBUG_EXPIRES,
     CONF_DEBUG_INTERVAL,
     CONF_DEBUG_LOGGING,
     CONF_SLAVE_ID,
-    DEBUG_AUTO_OFF_HOURS,
     DEBUG_FILE_NAME,
     DEBUG_MAX_BYTES,
     DEFAULT_DEBUG_INTERVAL,
@@ -39,8 +40,10 @@ from .const import (
     EXTERNAL_POWER_SENSOR_KEYS,
     SENSORS,
     STORAGE_KEY_JAZ_BASELINES,
-    UNAVAILABLE_SENTINELS,
 )
+from .counters import STATE_HELD, STATE_OK, GuardedCounter
+from .debug_timer import DEFAULT_DURATION, DURATION_UNLIMITED, compute_expiry, is_expired
+from .registers import decode_register
 
 _ENERGY_UNIT_TO_KWH = {
     UnitOfEnergy.WATT_HOUR: 0.001,
@@ -94,10 +97,6 @@ def _append_debug_line(path: str, line: str) -> None:
         debug_file.write(line + "\n")
 
 
-def _to_signed16(value: int) -> int:
-    return value - 0x10000 if value >= 0x8000 else value
-
-
 class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Polls the Ochsner OTE Modbus Gateway and parses the Objects 100-132 block."""
 
@@ -124,12 +123,16 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.reasons: dict[str, str | None] = {}
         # See _delta_since_baseline() - persisted across restarts in the config entry.
         self._jaz_baselines: dict[str, float] = dict(entry.data.get(STORAGE_KEY_JAZ_BASELINES, {}))
+        # Guard the kWh+MWh pairs against the rollover moment - see counters.py. In memory
+        # only: the first reading after a start is simply accepted.
+        self._heating_guard = GuardedCounter()
+        self._electrical_guard = GuardedCounter()
+        self._heating_total_exact: float | None = None
         self.client = AsyncModbusTcpClient(host=self._host, port=self._port, timeout=5)
 
         # Debug mode (options flow, off by default) - see const.py CONF_DEBUG_LOGGING.
         self._base_scan_interval: int = scan_interval
         self._debug_enabled = False
-        self._debug_started = None
         self._debug_warned = False
         self._previous_registers: list[int] | None = None
         self._debug_path: str = hass.config.path(DEBUG_FILE_NAME)
@@ -138,11 +141,23 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def apply_options(self) -> None:
         """(Re)read the options: debug mode on/off and the matching poll interval.
         Idempotent and cheap - also called whenever the entry is updated for another
-        reason (JAZ baselines), so it must never reload anything."""
+        reason (JAZ baselines, or the expiry written below), so it must never reload
+        anything."""
         options = self._entry.options
         enabled = bool(options.get(CONF_DEBUG_LOGGING, False))
+        if enabled:
+            now = dt_util.utcnow()
+            expires = options.get(CONF_DEBUG_EXPIRES)
+            duration = options.get(CONF_DEBUG_DURATION, DEFAULT_DURATION)
+            if is_expired(expires, now):
+                _LOGGER.info("Debug logging switched off: its time limit has passed")
+                self._update_options({CONF_DEBUG_LOGGING: False}, remove=(CONF_DEBUG_EXPIRES,))
+                enabled = False
+            elif expires is None and duration != DURATION_UNLIMITED:
+                # Debug mode was switched on without a stored expiry (by an older
+                # version): start the time limit now, once.
+                self._update_options({CONF_DEBUG_EXPIRES: compute_expiry(duration, now)})
         if enabled and not self._debug_enabled:
-            self._debug_started = dt_util.utcnow()
             self._previous_registers = None
             _LOGGER.info("Debug logging enabled, writing to %s", self._debug_path)
         elif self._debug_enabled and not enabled:
@@ -154,6 +169,12 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else self._base_scan_interval
         )
         self.update_interval = timedelta(seconds=interval)
+
+    def _update_options(self, changes: dict[str, Any], remove: tuple[str, ...] = ()) -> None:
+        """Write options without touching the others (the options flow merges likewise)."""
+        options = {k: v for k, v in self._entry.options.items() if k not in remove}
+        options.update(changes)
+        self.hass.config_entries.async_update_entry(self._entry, options=options)
 
     @property
     def has_external_power_sensors(self) -> bool:
@@ -187,20 +208,28 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data: dict[str, Any] = {}
 
         for description in SENSORS:
-            raw = registers[description.offset]
-            if raw in UNAVAILABLE_SENTINELS:
-                data[description.key] = None
-                continue
-            value = _to_signed16(raw) if description.signed else raw
-            if description.scale != 1:
-                value = round(value * description.scale, 2)
-            data[description.key] = value
+            data[description.key] = decode_register(
+                registers[description.offset],
+                description.scale,
+                description.signed,
+                description.unavailable_sentinels,
+            )
 
         for counter in COMBINED_COUNTERS:
             ones = registers[counter.ones_offset]
             thousands = registers[counter.thousands_offset]
             data[counter.key] = thousands * 1000 + ones
 
+        now_ts = dt_util.utcnow().timestamp()
+        self._heating_total_exact = self._guarded_total(
+            self._heating_guard,
+            data.get("heating_energy_mwh"),
+            data.get("heating_energy_kwh"),
+            now_ts,
+        )
+        data["heating_energy_total"] = (
+            round(self._heating_total_exact, 2) if self._heating_total_exact is not None else None
+        )
         data["lifetime_efficiency_jaz"] = self._compute_lifetime_efficiency(data)
         data["computed_cop_flow_method"] = self._compute_flow_method_cop(data)
         external_energy = self._sum_external_sensors(
@@ -218,15 +247,9 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_write_debug(self, registers: list[int], data: dict[str, Any]) -> None:
         """Append one JSON line per poll. Never allowed to break the sensor update."""
         try:
-            now = dt_util.utcnow()
-            if self._debug_started and now - self._debug_started >= timedelta(
-                hours=DEBUG_AUTO_OFF_HOURS
-            ):
-                _LOGGER.info("Debug logging switched off after %s h", DEBUG_AUTO_OFF_HOURS)
-                self.hass.config_entries.async_update_entry(
-                    self._entry,
-                    options={**self._entry.options, CONF_DEBUG_LOGGING: False},
-                )
+            if is_expired(self._entry.options.get(CONF_DEBUG_EXPIRES), dt_util.utcnow()):
+                _LOGGER.info("Debug logging switched off: its time limit has passed")
+                self._update_options({CONF_DEBUG_LOGGING: False}, remove=(CONF_DEBUG_EXPIRES,))
                 return
 
             previous = self._previous_registers
@@ -276,6 +299,23 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if not self._debug_warned:
                 self._debug_warned = True
                 _LOGGER.warning("Could not write the debug file", exc_info=True)
+
+    def _guarded_total(
+        self, guard: GuardedCounter, mwh: float | None, kwh: float | None, now_ts: float
+    ) -> float | None:
+        """MWh*1000 + kWh of a register pair, with the rollover moment held back (see
+        counters.py). None while either register has no value."""
+        if mwh is None or kwh is None:
+            return None
+        value, state = guard.update(mwh * 1000 + kwh, now_ts)
+        if state != STATE_OK:
+            _LOGGER.info(
+                "Energy counter pair looks inconsistent (%s): reading %s, using %s",
+                "held" if state == STATE_HELD else "accepted as reset",
+                mwh * 1000 + kwh,
+                value,
+            )
+        return value
 
     def _sum_external_sensors(
         self, entity_ids: list[str], unit_to_base: dict[str, float]
@@ -348,12 +388,10 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         most installations don't have populated - see const.py "UNVERIFIED
         REGISTERS")."""
         key = "lifetime_efficiency_jaz"
-        heating_kwh = data.get("heating_energy_kwh")
-        heating_mwh = data.get("heating_energy_mwh")
-        if heating_kwh is None or heating_mwh is None:
+        heating_total = self._heating_total_exact
+        if heating_total is None:
             self.reasons[key] = "heating_energy_unavailable"
             return None
-        heating_total = heating_mwh * 1000 + heating_kwh
 
         electrical_total = self._sum_external_sensors(
             self._external_energy_entity_ids, _ENERGY_UNIT_TO_KWH
@@ -364,7 +402,12 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if electrical_kwh is None or electrical_mwh is None:
                 self.reasons[key] = "no_electrical_energy_source"
                 return None
-            electrical_total = electrical_mwh * 1000 + electrical_kwh
+            electrical_total = self._guarded_total(
+                self._electrical_guard,
+                electrical_mwh,
+                electrical_kwh,
+                dt_util.utcnow().timestamp(),
+            )
 
         heating_delta = self._delta_since_baseline("heating", heating_total)
         electrical_delta = self._delta_since_baseline("electrical", electrical_total)

@@ -115,7 +115,11 @@ CONF_DEBUG_INTERVAL = "debug_scan_interval"
 DEFAULT_DEBUG_INTERVAL = 10
 DEBUG_FILE_NAME = "ochsner_ote_viewer_debug.jsonl"
 DEBUG_MAX_BYTES = 10 * 1024 * 1024  # rotated once to "<file>.1", so at most ~20 MB
-DEBUG_AUTO_OFF_HOURS = 72
+# How long the debug mode runs: "72h" (default) or "unlimited" (debug_timer.py). The expiry
+# itself is stored as an ISO UTC string in the entry options (CONF_DEBUG_EXPIRES, internal,
+# never shown in a form), so restarts, reloads and updates do not restart the timer.
+CONF_DEBUG_DURATION = "debug_duration"
+CONF_DEBUG_EXPIRES = "debug_expires"
 
 # Feature flags used to gate sensors that could not be validated against real hardware -
 # see the "requires_feature" docstring note below for why.
@@ -161,6 +165,10 @@ class OchsnerSensorDescription:
     # during setup (has_cooling / has_auxiliary_heater). See the module note above
     # "UNVERIFIED REGISTERS" for why this exists.
     requires_feature: str | None = None
+    # Raw values that mean "no value" for this register. 0xFFFF is a genuine -0.1 for a
+    # signed temperature register that hovers around zero (observed on the heat source
+    # registers), so those opt out of it - see the two heat_source_* sensors below.
+    unavailable_sentinels: tuple[int, ...] = UNAVAILABLE_SENTINELS
 
 
 @dataclass(frozen=True)
@@ -234,6 +242,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         signed=True,
         unit=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        unavailable_sentinels=(32768,),
     ),
     OchsnerSensorDescription(
         key="heat_source_inlet_temperature",
@@ -242,6 +251,7 @@ SENSORS: tuple[OchsnerSensorDescription, ...] = (
         signed=True,
         unit=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
+        unavailable_sentinels=(32768,),
     ),
     OchsnerSensorDescription(
         key="suction_gas_pressure",
@@ -529,6 +539,16 @@ DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
     # only fed JAZ/COP. Only created when external energy sensors are configured.
     OchsnerDerivedSensorDescription(
         key="electrical_energy_external",
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+    ),
+    # Heating energy as one continuous value (MWh * 1000 + kWh). Guarded against the moment
+    # the kWh register rolls over into the MWh register: the two registers do not change in
+    # the same poll, so the last plausible value is held instead of dropping/jumping by
+    # ~1000 kWh (counters.py). The raw kWh/MWh sensors above stay untouched.
+    OchsnerDerivedSensorDescription(
+        key="heating_energy_total",
         unit=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,

@@ -49,11 +49,20 @@
     "step": {
       "init": {
         "title": "Debug mode",
-        "description": "Write every poll (all raw registers, changed registers, derived values) as one JSON line to \"ochsner_ote_viewer_debug.jsonl\" in the Home Assistant config folder, so a cycle can be analysed afterwards. Off by default. Switches itself off after 72 hours and rotates the file at 10 MB. Contains no host or credentials.",
+        "description": "Write every poll (all raw registers, changed registers, derived values) as one JSON line to \"ochsner_ote_viewer_debug.jsonl\" in the Home Assistant config folder, so a cycle can be analysed afterwards. Off by default. \"72 hours\" switches the mode off by itself; the time limit survives restarts and updates. \"Unlimited\" keeps writing until you switch it off - at your own risk: a line is written every poll, the file sits in the Home Assistant config folder and is rotated at 10 MB (about 20 MB at most, older data is overwritten), so it adds write load and uses storage. Contains no host or credentials.",
         "data": {
           "debug_logging": "Write debug file",
+          "debug_duration": "Duration",
           "debug_scan_interval": "Poll interval while debugging (seconds)"
         }
+      }
+    }
+  },
+  "selector": {
+    "debug_duration": {
+      "options": {
+        "72h": "72 hours",
+        "unlimited": "Unlimited (until switched off)"
       }
     }
   },
@@ -93,7 +102,8 @@
       "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" },
       "lifetime_efficiency_jaz": { "name": "SPF (efficiency since first measurement)" },
       "computed_cop_flow_method": { "name": "COP (computed, flow method)" },
-      "electrical_energy_external": { "name": "Electrical energy (external)" }
+      "electrical_energy_external": { "name": "Electrical energy (external)" },
+      "heating_energy_total": { "name": "Heating energy (total, kWh)" }
     }
   }
 }

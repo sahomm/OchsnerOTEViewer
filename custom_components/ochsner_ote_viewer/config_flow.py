@@ -13,11 +13,14 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 
 from . import meter_profiles
 from .const import (
     BASE_REGISTER,
     CONF_CONFIGURE_EXTERNAL_SENSORS,
+    CONF_DEBUG_DURATION,
+    CONF_DEBUG_EXPIRES,
     CONF_DEBUG_INTERVAL,
     CONF_DEBUG_LOGGING,
     DEFAULT_DEBUG_INTERVAL,
@@ -37,6 +40,14 @@ from .const import (
     DOMAIN,
     EXTERNAL_ENERGY_SENSOR_KEYS,
     EXTERNAL_POWER_SENSOR_KEYS,
+)
+
+from .debug_timer import (
+    DEFAULT_DURATION,
+    DURATION_72H,
+    DURATION_UNLIMITED,
+    compute_expiry,
+    is_expired,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -264,12 +275,39 @@ class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        options = self.config_entry.options
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            # Merge instead of replace: options this form does not show (the internal
+            # debug expiry, and anything later versions add) must survive a save.
+            data = {**options, **user_input}
+            data.pop(CONF_DEBUG_EXPIRES, None)
+            if user_input.get(CONF_DEBUG_LOGGING):
+                duration = user_input.get(CONF_DEBUG_DURATION, DEFAULT_DURATION)
+                now = dt_util.utcnow()
+                old_expires = options.get(CONF_DEBUG_EXPIRES)
+                # Keep a running time limit when nothing about it changed; a freshly
+                # switched-on (or re-switched) debug run gets a new one.
+                still_running = (
+                    options.get(CONF_DEBUG_LOGGING)
+                    and options.get(CONF_DEBUG_DURATION, DEFAULT_DURATION) == duration
+                    and old_expires is not None
+                    and not is_expired(old_expires, now)
+                )
+                expires = old_expires if still_running else compute_expiry(duration, now)
+                if expires is not None:
+                    data[CONF_DEBUG_EXPIRES] = expires
+            return self.async_create_entry(data=data)
 
         schema = vol.Schema(
             {
                 vol.Optional(CONF_DEBUG_LOGGING, default=False): bool,
+                vol.Optional(CONF_DEBUG_DURATION, default=DEFAULT_DURATION): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[DURATION_72H, DURATION_UNLIMITED],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key=CONF_DEBUG_DURATION,
+                    )
+                ),
                 vol.Optional(CONF_DEBUG_INTERVAL, default=DEFAULT_DEBUG_INTERVAL): vol.All(
                     int, vol.Range(min=10, max=300)
                 ),
@@ -277,5 +315,5 @@ class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
         )
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(schema, self.config_entry.options),
+            data_schema=self.add_suggested_values_to_schema(schema, options),
         )
