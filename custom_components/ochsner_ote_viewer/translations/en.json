@@ -114,7 +114,7 @@
       "heat_pump_operating_hours": { "name": "Heat pump operating hours" },
       "auxiliary_heater_switch_cycles": { "name": "Auxiliary heater switch cycles" },
       "auxiliary_heater_operating_hours": { "name": "Auxiliary heater operating hours" },
-      "lifetime_efficiency_jaz": { "name": "SPF (efficiency since first measurement)" },
+      "lifetime_efficiency_jaz": { "name": "SPF (heating meter ÷ total electricity)" },
       "computed_cop_flow_method": { "name": "COP (computed, flow method)" },
       "electrical_energy_external": { "name": "Electrical energy (external)" },
       "heating_energy_total": { "name": "Heating energy (total, kWh)" },

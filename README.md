@@ -15,7 +15,13 @@ Dieses Projekt wurde von [sahomm](https://github.com/sahomm) mit Unterstützung 
 > (OCHSNER-Wärmepumpen mit OTE-Regler) zu beschreiben. Das Projekt enthält keine Logos oder
 > Grafiken von OCHSNER; das Icon ist eine eigene, neutrale Gestaltung.
 
-## Update-Hinweis (ab v0.11.0)
+> ⚠️ **Voraussetzung: Home Assistant 2026.10.1 oder neuer.** Ältere Versionen installiert HACS nicht (in der `hacs.json` festgelegt).
+
+## Update-Hinweise
+
+Ab **v0.15.0** ist nach einem Update kein Entfernen oder Neuanlegen nötig: Die neuen Sensoren erscheinen automatisch, vorhandene Sensoren, Verlauf und JAZ-Baseline bleiben unverändert. Alle Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
+
+**Ab v0.11.0:**
 
 ⚠️ Hattest du bereits eine ältere Version installiert (vor v0.11.0)? Diese Version ändert,
 wie Sensoren intern identifiziert werden (stabile Verbindungsdaten statt einer zufälligen
@@ -29,9 +35,7 @@ Modbus-Adresse gleich bleiben.
 
 ## Status
 
-🚧 **Früher Entwicklungsstand (v0.1) – die Integration existiert und wurde gegen ein
-reales Gateway verifiziert, aber noch nicht in einer laufenden Home-Assistant-Instanz
-End-to-End getestet.**
+Die Integration läuft produktiv in einer realen Home-Assistant-Instanz an **einer** Anlage (ein Anlagentyp). Bei anderen Reglerständen, Hydrauliken oder Zählern können Abweichungen auftreten; Rückmeldungen sind willkommen.
 
 **Diese Integration bietet aktuell ausschließlich lesenden Zugriff** auf deine
 OCHSNER-Wärmepumpe – Temperaturen, Status, Energiezähler, Betriebsstunden, Fehlercodes.
@@ -90,7 +94,7 @@ Details zur genauen Konfiguration (DIP-Schalter, Verkabelung, Netzwerk-Setup) si
 
 1. In Home Assistant: **HACS → Integrationen → ⋮ (Menü oben rechts) → Benutzerdefinierte Repositories**
 2. `https://github.com/sahomm/OchsnerOTEViewer` eintragen, Kategorie **Integration**
-3. "Ochsner OTE Viewer" in HACS suchen und installieren, danach Home Assistant neu starten
+3. "Ochsner OTE Viewer" in HACS suchen und installieren (HACS zeigt Version und Änderungen), danach Home Assistant neu starten
 4. **Einstellungen → Geräte & Dienste → Integration hinzufügen → "Ochsner OTE Viewer"**
 5. Host/IP und Port deines RS485-zu-Ethernet-Gateways eingeben, sowie die Modbus-Adresse
    deines OTE-Modbus-Gateways (siehe [HARDWARE_SETUP.md](HARDWARE_SETUP.md))
@@ -112,8 +116,8 @@ verifiziert werden**. Sie werden deshalb nur angelegt, wenn du das bei der Einri
 explizit aktivierst. Hast du eine dieser Funktionen und kannst die Werte bestätigen (oder
 korrigieren) – bitte über ein Issue oder einen PR melden.
 
-**Effizienz-Sensor (JAZ):** Der Sensor "Effizienz seit erster Messung (Jahresarbeitszahl/
-JAZ)" berechnet sich aus Heizenergie ÷ elektrischer Energie – **nicht** aus den rohen
+**Effizienz-Sensor (JAZ):** Der Sensor "JAZ (Heizzähler ÷ Gesamtstrom)" berechnet sich aus
+Heizenergie ÷ elektrischer Energie – **nicht** aus den rohen
 Lebenszeit-Zählerständen, sondern aus der **Veränderung seit der ersten erfolgreichen
 Messung** (bzw. seit einem erkannten Zähler-Reset). Grund: Ochsners eigener
 Heizenergie-Zähler läuft seit Inbetriebnahme der Anlage (oft Jahre), ein frisch
@@ -121,6 +125,10 @@ hinzugefügter externer Stromzähler aber erst seit wenigen Tagen – eine Divis
 rohen Lebenszeit-Werte ergäbe einen sinnlos hohen Wert (in der Praxis beobachtet: JAZ von
 126 statt eines realistischen Werts um 3–5). Das gilt unabhängig davon, ob die
 elektrische Seite aus Ochsners eigenem Register oder einem externen Sensor kommt.
+
+Beachte: Der Heizenergie-Zähler der Regelung zählt das Warmwasser nicht mit, der Strom aber
+schon. Diese JAZ liegt deshalb unter dem tatsächlichen Gesamtwert; den vollständigen Wert zeigt
+[COP gesamt](#betriebsart-und-cop-kennzahlen-ab-v0150).
 
 ⏳ **Das bedeutet: Nach dem Einrichten (oder nach einem erkannten Zähler-Reset) dauert es
 etwas, bis ein verlässlicher Wert entsteht** – wie lange, hängt davon ab, wie viel die
@@ -222,6 +230,69 @@ Werte und werden andernfalls gar nicht erst angelegt.
 Hinweis zur Langzeitstatistik: Die 0 im Stillstand fließt in den Stundenmittelwert des COP
 ein und verwässert ihn; für Auswertungen eignen sich der Maximalwert und der Verlauf besser.
 
+## Betriebsart und COP-Kennzahlen (ab v0.15.0)
+
+Neue Sensoren, die die Betriebsart der Wärmepumpe in Klartext melden und Heizen und
+Warmwasser getrennt auswerten. Bestehende Sensoren, ihr Verlauf und ihre IDs bleiben
+unverändert; die neuen kommen beim Update von selbst dazu.
+
+| Sensor | Bedeutung | Wird angelegt |
+|---|---|---|
+| Betriebsart | Standby, Anlauf, Läuft, Heizen, Warmwasser, Abtauen, Nachlauf, Unbekannt (in der Sprache von Home Assistant); der Rohwert steht im Attribut `status_code` | immer |
+| COP gesamt (kumuliert) | Wärme gesamt ÷ Gesamtstrom seit Start bzw. Reset; Attribute: Anteil Warmwasser an Strom und Wärme, `method` | mit Stromzähler |
+| COP letzter Lauf | ein Wert je Verdichterlauf; Attribute: Dauer, Vorlauf max., Wärme, Strom, Anteil Warmwasser, Abtaudauer, `partial` | mit Stromzähler |
+| COP Heizen / COP Warmwasser (kumuliert) | getrennt für Heizen und Warmwasser | mit Stromzähler und Warmwasser-Erkennung |
+| Strom Heizen, Strom Warmwasser, Wärme Warmwasser (berechnet) | die kumulierten kWh-Summen dahinter (`total_increasing`), auch für Auswertungen über Zeiträume mit der Home-Assistant-Statistik | mit Stromzähler und Warmwasser-Erkennung |
+
+Die Kennzahlen sind **kumuliert seit dem Start oder dem letzten Zurücksetzen** und damit
+keine Jahresarbeitszahl; sie geben aber einen gleitenden Gesamtwert und lassen sich über
+die Summen-Sensoren auch für Monate oder Jahre auswerten.
+
+**Warmwasser erkennen (optional).** Die Regelung meldet Heizen und Warmwasser-Laden im
+Statuscode gleich (`1`). Unterscheiden lässt es sich über den Volumenstrom, weil beim
+Warmwasser-Laden meist mehr Wasser fließt. In der Einrichtung und unter *Konfigurieren* gibt
+es dafür den Schalter **„Warmwasser über Volumenstrom erkennen“** und die **Schwelle in
+l/min** (5 bis 200, die Hysterese beträgt fest 1 l/min). Die Schwelle ist **anlagenspezifisch**:
+Lies im Verlauf des Sensors „Volumenstrom“ den Wert beim Heizen und beim Warmwasser-Laden
+ab und wähle einen Wert dazwischen (bei der Anlage des Autors liegen sie bei etwa 54 und 61,
+die Vorbelegung ist 58). Das Ein- oder Ausschalten lädt die Integration neu, eine geänderte
+Schwelle gilt sofort.
+
+**Ohne Schwelle (Rückfall).** Dann sind COP Heizen und COP Warmwasser „Unbekannt“ (Attribut
+`reason: dhw_detection_not_configured`). Der COP gesamt rechnet aus dem Durchfluss
+(`method: flow_integral`) und liegt etwa 2 % zu hoch, weil Wasser-Glykol und Wärmeverluste
+nicht berücksichtigt sind; mit Schwelle rechnet er aus Heizzähler und Warmwasser-Wärme
+(`method: counter_plus_dhw`).
+
+**So wird gerechnet.**
+- Heiz-COP = Heizzähler ÷ Strom (Heizen, Anlauf, Abtauen, Nachlauf).
+- Warmwasser-COP = Warmwasser-Wärme ÷ Warmwasser-Strom, mit Warmwasser-Wärme = Volumenstrom ×
+  Spreizung (Vorlauf − Rücklauf) × 4,186 / 60.
+- COP gesamt = (Heizzähler außerhalb Warmwasser + Warmwasser-Wärme) ÷ Gesamtstrom.
+- Der Heizenergie-Zähler der Regelung zählt Warmwasser nur mit wenigen Schritten beim
+  Umschalten des Ventils mit; diese Schritte werden im Warmwasser-Lauf **nicht mitgezählt**,
+  damit die Wärme nicht doppelt eingeht.
+- Der Strom im Stillstand (Standby, bei der Anlage des Autors rund 0,17 kWh pro Tag) zählt nur im Gesamtstrom, nicht im
+  Heiz-COP.
+- Wärme und Strom eines Abfrageintervalls gehören der Betriebsart am Ende des Intervalls. Ein
+  erster Messwert, eine Lücke (länger als 3 Abfragen plus 30 s) oder ein unplausibler Sprung
+  verankern nur neu; Wärme und Strom dieses Intervalls fallen gemeinsam weg.
+- Die Werte sind leicht vom Abfragetakt abhängig (bei 10, 30 und 60 s Takt etwa ±0,02 bis
+  ±0,03); die Wärme nach einem Abtauen kommt rund 40 s verzögert an.
+- Die Zuordnung der Statuswerte (z. B. `12` und `9` = Abtauen, `29` = Auslauf bei laufendem
+  Verdichter) stammt aus Beobachtung, nicht aus dem Herstellerhandbuch; das Abtauen wurde bisher
+  nur einmal beobachtet. Unbekannte Werte erscheinen als „Unbekannt“.
+
+**Zurücksetzen und Neuanlage.** Die Summen werden gespeichert und überleben Neustart und
+Update. Unter *Konfigurieren* (und in der Einrichtung) lassen sie sich mit **„Kumulierte
+COP-Summen zurücksetzen“** einmalig verwerfen. Sie bleiben auch erhalten, wenn du die
+Integration entfernst und mit denselben Verbindungsdaten neu anlegst; die JAZ-Baseline beginnt
+dabei neu, die Entitäten-IDs und der Verlauf bleiben.
+
+**Entitäten-IDs.** Neue Sensoren bekommen IDs der Form `sensor.ochsner_heatpump_<schlüssel>`,
+unabhängig vom Raum, in dem das Gerät liegt (Home Assistant stellt sonst den Raumnamen
+voran). Bereits vorhandene Entitäten behalten ihre IDs.
+
 ## Debug-Modus (optional)
 
 Standardmäßig aus. Aktivierung unter *Einstellungen -> Geräte & Dienste -> Ochsner OTE Viewer -> Konfigurieren*. Solange er an ist, wird jede Abfrage als eine JSON-Zeile in `ochsner_ote_viewer_debug.jsonl` im Home-Assistant-Konfigurationsordner angehängt: alle 51 Rohregister, die seit der vorigen Abfrage geänderten Register und berechnete Werte (Spreizung Vor-/Rücklauf, Wärmeleistung, externe elektrische Leistung, COP nach Durchflussmethode). Das Abfrageintervall lässt sich dabei bis auf 10 Sekunden senken (das Gateway aktualisiert seinen Datenblock alle 10 s). So lässt sich ein Heizzyklus hinterher auswerten, auch Register ohne Sensor.
@@ -230,7 +301,7 @@ Die Datei enthält weder Hostnamen noch Zugangsdaten. Sie wird bei 10 MB einmal 
 
 ## Sensor-Organisation
 
-Bei ~27 Sensoren pro Wärmepumpe lohnt sich eine Sortierung. Home Assistants Geräteseite
+Bei rund 35 Sensoren pro Wärmepumpe lohnt sich eine Sortierung. Home Assistants Geräteseite
 erlaubt keine frei benennbaren Themen-Überschriften, aber eine eingebaute Aufteilung in
 **Sensoren** (alltagsrelevant, oben) und **Diagnose** (technisch, eigener eingeklappter
 Block – Statuscodes, Kältekreis-Drücke, Fehlercodes, Verschleiß-Zähler wie Betriebsstunden/
@@ -241,9 +312,9 @@ Zwei Sensoren sind zusätzlich standardmäßig **ausgeblendet** (nicht deaktivie
 im Hintergrund weiter mit, für die geplante Korrelations-Analyse über die Heizsaison), weil
 ihr Rohwert für sich genommen eher verwirrt als hilft:
 
-- **"COP (Ochsner-Register, unverifiziert)"** – über **zwei unabhängige, komplette
-  Heizzyklen** hinweg bestätigt (nicht vermutet), inklusive der stündlichen Langzeitstatistik
-  (min=mean=max=25,5 durchgehend über die komplette Laufstunde des zweiten Zyklus): Das
+- **"COP (Ochsner-Register, unverifiziert)"** – über **mehrere Tage und viele Läufe** (Zehntausende
+  Messungen im 10-s-Takt) hinweg bestätigt (nicht vermutet), inklusive der stündlichen
+  Langzeitstatistik (min=mean=max=25,5 durchgehend): Das
   Register zeigt konstant denselben Wert (25,5), auch während echten Betriebs mit ~21 kW
   gemessener Wärmeleistung. Es reagiert also – zumindest in dem, was bisher beobachtet wurde –
   nicht live auf den tatsächlichen Betrieb, wie es der Name nahelegt. Warum, ist offen (z. B.
@@ -273,7 +344,7 @@ ihr Rohwert für sich genommen eher verwirrt als hilft:
 Ausgeblendete Sensoren lassen sich jederzeit über die Entity-Einstellungen wieder sichtbar
 machen. Bei den beiden berechneten Kern-Sensoren (JAZ, COP berechnet) sowie bei Zähler- und
 Statuscode-Namen wird das gängige Kürzel vorangestellt und die ausführliche Beschreibung
-dahinter in Klammern ergänzt (z. B. "JAZ (Effizienz seit erster Messung)"). Eine
+dahinter in Klammern ergänzt (z. B. "JAZ (Heizzähler ÷ Gesamtstrom)"). Eine
 Hover-Tooltip-Erklärung, wie sie mancher sich vielleicht wünscht, unterstützt Home Assistants
 Standardoberfläche für einzelne Entities aktuell nicht – der Name ist das einzige, worüber
 eine Integration das direkt beeinflussen kann.

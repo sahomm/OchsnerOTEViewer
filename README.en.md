@@ -15,7 +15,13 @@ This project was built by [sahomm](https://github.com/sahomm) with the help of C
 > controller). This project contains no OCHSNER logos or artwork; the icon is an original,
 > neutral design.
 
-## Upgrade note (as of v0.11.0)
+> ⚠️ **Requirement: Home Assistant 2026.10.1 or newer.** HACS will not install the integration on older versions (set in `hacs.json`).
+
+## Upgrade notes
+
+From **v0.15.0** on, no remove/re-add is needed after an update: the new sensors appear automatically, existing sensors, history and the SPF baseline stay unchanged. All changes per version: [CHANGELOG.md](CHANGELOG.md).
+
+**As of v0.11.0:**
 
 ⚠️ Had an older version installed already (before v0.11.0)? This version changes how
 sensors are internally identified (stable connection details instead of a random internal
@@ -28,9 +34,7 @@ cycles as long as host/port/Modbus address stay the same.
 
 ## Status
 
-🚧 **Early development stage (v0.1) – the integration exists and has been verified
-against a real gateway, but has not yet been end-to-end tested inside a running Home
-Assistant instance.**
+The integration runs in production in a real Home Assistant instance on **one** plant (one plant type). Other controller versions, hydraulics or meters may behave differently; feedback is welcome.
 
 **This integration currently provides read-only access** to your OCHSNER heat pump –
 temperatures, status, energy counters, operating hours, error codes. No values are written
@@ -89,7 +93,7 @@ See [HARDWARE_SETUP.en.md](HARDWARE_SETUP.en.md) for exact configuration details
 
 1. In Home Assistant: **HACS → Integrations → ⋮ (menu, top right) → Custom repositories**
 2. Add `https://github.com/sahomm/OchsnerOTEViewer`, category **Integration**
-3. Search for "Ochsner OTE Viewer" in HACS and install it, then restart Home Assistant
+3. Search for "Ochsner OTE Viewer" in HACS and install it (HACS shows the version and its changes), then restart Home Assistant
 4. **Settings → Devices & Services → Add Integration → "Ochsner OTE Viewer"**
 5. Enter the host/IP and port of your RS485-to-Ethernet gateway, and the Modbus address of
    your OTE Modbus Gateway (see [HARDWARE_SETUP.en.md](HARDWARE_SETUP.en.md))
@@ -111,14 +115,18 @@ verified against a system that actually has these features**. They are therefore
 created if you explicitly enable them during setup. If you have one of these features and
 can confirm (or correct) the readings, please open an issue or PR.
 
-**Efficiency sensor (SPF):** the "Efficiency since first measurement (seasonal performance
-factor/SPF)" sensor is heating energy ÷ electrical energy - but **not** from the raw
+**Efficiency sensor (SPF):** the "SPF (heating meter ÷ total electricity)" sensor is heating
+energy ÷ electrical energy - but **not** from the raw
 lifetime counter values, from the **change since the first successful reading** (or since
 a detected counter reset) instead. Why: Ochsner's own heating-energy counter runs since the
 system's commissioning (often years), while a freshly added external electricity meter only
 has a few days of data - dividing the raw lifetime totals would produce a meaningless number
 (observed in practice: an SPF of 126 instead of a realistic ~3-5). This applies regardless of
 whether the electrical side comes from Ochsner's own register or an external sensor.
+
+Note: the controller's heating-energy counter does not include hot water, but the electricity
+does. This SPF is therefore below the true overall value; the complete value is shown by
+[COP total](#operating-mode-and-cop-figures-as-of-v0150).
 
 ⏳ **This means it takes a while after setup (or after a detected counter reset) before this
 sensor settles on a reliable value** - how long depends on how much the heat pump actually
@@ -212,6 +220,67 @@ with Ochsner's meter accessory and are not created at all otherwise. Note on
 long-term statistics: the idle 0 is included in the
 COP's hourly mean and dilutes it - use the maximum and the history for analysis instead.
 
+## Operating mode and COP figures (as of v0.15.0)
+
+New sensors that report the heat pump's operating mode in plain words and evaluate heating
+and hot water separately. Existing sensors, their history and their IDs stay as they are;
+the new ones appear by themselves on update.
+
+| Sensor | Meaning | Created |
+|---|---|---|
+| Operating mode | Standby, Starting, Running, Heating, Hot water, Defrost, Run-on, Unknown (in the Home Assistant language); the raw value is in the attribute `status_code` | always |
+| COP total (cumulative) | total heat ÷ total electricity since start or reset; attributes: hot-water share of electricity and heat, `method` | with an electricity meter |
+| COP last run | one value per compressor run; attributes: duration, max. flow temperature, heat, electricity, hot-water share, defrost duration, `partial` | with an electricity meter |
+| COP heating / COP hot water (cumulative) | heating and hot water separately | with an electricity meter and hot-water detection |
+| Electricity heating, electricity hot water, heat hot water (calculated) | the cumulative kWh totals behind them (`total_increasing`), also usable for evaluations over periods with Home Assistant statistics | with an electricity meter and hot-water detection |
+
+The figures are **cumulative since start or the last reset** and therefore not a seasonal
+performance factor; they give a running overall value, and the total sensors let you evaluate
+months or years with Home Assistant statistics.
+
+**Detecting hot water (optional).** The controller reports heating and hot-water charging
+with the same status code (`1`). They can be told apart by the volume flow, because more
+water usually flows while charging hot water. During setup and under *Configure* there is the
+switch **"Detect hot water by volume flow"** and the **threshold in l/min** (5 to 200, the
+hysteresis is fixed at 1 l/min). The threshold is **plant-specific**: read the flow while
+heating and while charging hot water off the history of the "Volume flow" sensor and pick a
+value in between (on the author's plant they are about 54 and 61, the default is 58).
+Switching it on or off reloads the integration; a changed threshold applies immediately.
+
+**Without a threshold (fallback).** Then COP heating and COP hot water are "Unknown"
+(attribute `reason: dhw_detection_not_configured`). COP total is calculated from the flow
+(`method: flow_integral`) and is about 2 % too high because water/glycol and heat losses are
+not accounted for; with a threshold it is calculated from the heating meter plus the hot-water
+heat (`method: counter_plus_dhw`).
+
+**How it is calculated.**
+- Heating COP = heating meter ÷ electricity (heating, starting, defrost, run-on).
+- Hot-water COP = hot-water heat ÷ hot-water electricity, with hot-water heat = volume flow ×
+  spread (flow - return) × 4.186 / 60.
+- COP total = (heating meter outside hot water + hot-water heat) ÷ total electricity.
+- The controller's heating-energy counter only counts a few steps of hot-water charging, at
+  the valve changeover; these steps are **not counted** during a hot-water run so the heat is
+  not counted twice.
+- Electricity at standstill (standby, about 0.17 kWh per day on the author's plant) is part of the total only, not
+  of the heating COP.
+- Heat and electricity of a poll interval belong to the operating mode at the end of the
+  interval. A first reading, a gap (longer than 3 polls plus 30 s) or an implausible jump only
+  re-anchors; heat and electricity of that interval are dropped together.
+- The values depend slightly on the poll interval (about ±0.02 to ±0.03 at 10, 30 and 60 s);
+  the heat after a defrost arrives about 40 s late.
+- The meaning of the status values (e.g. `12` and `9` = defrost, `29` = overshoot with the
+  compressor still running) comes from observation, not from the manufacturer's manual;
+  defrost has only been observed once so far. Unknown values show up as "Unknown".
+
+**Reset and re-adding.** The totals are saved and survive restarts and updates. Under
+*Configure* (and during setup) **"Reset the cumulative COP totals"** discards them once. They
+also survive removing the integration and re-adding it with the same connection details; the
+SPF baseline starts again then, the entity IDs and the history stay.
+
+**Entity IDs.** New sensors get IDs of the form `sensor.ochsner_heatpump_<key>`, regardless
+of the area the device is in (Home Assistant otherwise puts the area name in front).
+Existing entities keep their IDs.
+
 ## Debug mode (optional)
 
 Off by default. Enable it under *Settings -> Devices & services -> Ochsner OTE Viewer -> Configure*. While it is on, every poll is appended as one JSON line to `ochsner_ote_viewer_debug.jsonl` in your Home Assistant configuration folder: all 51 raw registers, the registers that changed since the previous poll, and derived values (flow/return spread, thermal power, external electrical power, flow-method COP). The poll interval can be set to as low as 10 seconds while debugging (the gateway refreshes its data block every 10 s). That makes a heating cycle analysable afterwards, including registers that have no sensor.
@@ -220,7 +289,7 @@ The file contains no host name and no credentials. It is rotated once at 10 MB (
 
 ## Sensor organization
 
-With ~27 sensors per heat pump, some sorting helps. Home Assistant's device page doesn't
+With around 35 sensors per heat pump, some sorting helps. Home Assistant's device page doesn't
 support custom named section headers, but it does have a built-in split into **Sensors**
 (everyday-relevant, shown first) and **Diagnostics** (technical, its own collapsed block -
 status codes, refrigerant-circuit pressures, error codes, wear counters like operating
@@ -231,9 +300,9 @@ Two sensors are additionally **hidden** by default (not disabled - they keep run
 background for the planned correlation analysis over the heating season), because their raw
 value is more confusing than helpful on its own:
 
-- **"COP (Ochsner register, unverified)"** - confirmed over **two independent, complete
-  heating cycles** now (not just suspected), including hourly long-term statistics
-  (min=mean=max=25.5 straight through the second cycle's entire running hour): the register
+- **"COP (Ochsner register, unverified)"** - confirmed over **several days and many runs**
+  (tens of thousands of readings at a 10 s interval; not just suspected), including hourly
+  long-term statistics (min=mean=max=25.5 throughout): the register
   holds the same constant value (25.5), including during real operation with ~21 kW measured
   thermal output. So it doesn't respond live to actual operation the way its name suggests -
   at least not in what's been observed so far. Why is unclear either way (e.g. a
@@ -262,7 +331,7 @@ value is more confusing than helpful on its own:
 Hidden sensors can be made visible again any time from the entity's settings. For the two
 core computed sensors (SPF, computed COP) as well as status-code and counter names, the
 common abbreviation now comes first with the full description in parentheses after it (e.g.
-"SPF (efficiency since first measurement)"). A hover tooltip, which some might expect, isn't
+"SPF (heating meter ÷ total electricity)"). A hover tooltip, which some might expect, isn't
 something Home Assistant's default UI currently supports for individual entities - the name
 is the only lever an integration has direct control over here.
 
