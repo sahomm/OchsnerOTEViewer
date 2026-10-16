@@ -11,7 +11,14 @@
           "scan_interval": "Abfrageintervall (Sekunden)",
           "has_cooling": "Anlage hat eine aktive Kühlfunktion",
           "has_auxiliary_heater": "Anlage hat eine von Ochsner gesteuerte Zusatzheizung",
+          "dhw_flow_detection": "Warmwasser über Volumenstrom erkennen",
+          "dhw_flow_threshold": "Schwelle Volumenstrom Warmwasser (l/min)",
+          "reset_accumulators": "Kumulierte COP-Summen zurücksetzen",
           "configure_external_sensors": "Genauere Effizienzwerte für die Wärmepumpe einrichten (optional, per externem Stromzähler wie z. B. Shelly 3EM)"
+        },
+        "data_description": {
+          "dhw_flow_threshold": "Volumenstrom, ab dem das Laden als Warmwasser gilt. Anlagenspezifisch: Volumenstrom beim Heizen und beim Warmwasser-Laden im Verlauf des Volumenstrom-Sensors ablesen und einen Wert dazwischen wählen. 58 ist der Wert der Anlage des Autors.",
+          "reset_accumulators": "Verwirft die gespeicherten kumulierten Summen (COP Heizen / Warmwasser / gesamt). Wird nicht gespeichert, gilt einmalig."
         }
       },
       "external_sensors": {
@@ -48,12 +55,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Debug-Modus",
-        "description": "Schreibt jede Abfrage (alle Rohregister, geänderte Register, berechnete Werte) als eine JSON-Zeile in die Datei „ochsner_ote_viewer_debug.jsonl“ im Home-Assistant-Konfigurationsordner, damit ein Zyklus später ausgewertet werden kann. Standardmäßig aus. „72 Stunden“ schaltet den Modus selbst ab; die Zeitgrenze bleibt bei Neustart und Update erhalten. „Unbegrenzt“ schreibt, bis du den Modus ausschaltest – auf eigene Verantwortung: Es wird bei jeder Abfrage eine Zeile geschrieben, die Datei liegt im Home-Assistant-Konfigurationsordner und wird bei 10 MB rotiert (höchstens etwa 20 MB, ältere Daten werden überschrieben), das bedeutet Schreiblast und Speicherbedarf. Enthält weder Host noch Zugangsdaten.",
+        "title": "Optionen",
+        "description": "Warmwasser-Erkennung: Mit einer Volumenstrom-Schwelle unterscheidet die Integration Heizen und Warmwasser-Laden und berechnet COP Heizen, Warmwasser und gesamt; ohne Schwelle bleiben COP Heizen und Warmwasser unbekannt. Das Ein- oder Ausschalten lädt die Integration neu. Debug-Modus: Schreibt jede Abfrage (alle Rohregister, geänderte Register, berechnete Werte) als eine JSON-Zeile in die Datei „ochsner_ote_viewer_debug.jsonl“ im Home-Assistant-Konfigurationsordner, damit ein Zyklus später ausgewertet werden kann. Standardmäßig aus. „72 Stunden“ schaltet den Modus selbst ab; die Zeitgrenze bleibt bei Neustart und Update erhalten. „Unbegrenzt“ schreibt, bis du den Modus ausschaltest – auf eigene Verantwortung: Es wird bei jeder Abfrage eine Zeile geschrieben, die Datei liegt im Home-Assistant-Konfigurationsordner und wird bei 10 MB rotiert (höchstens etwa 20 MB, ältere Daten werden überschrieben), das bedeutet Schreiblast und Speicherbedarf. Enthält weder Host noch Zugangsdaten.",
         "data": {
+          "dhw_flow_detection": "Warmwasser über Volumenstrom erkennen",
+          "dhw_flow_threshold": "Schwelle Volumenstrom Warmwasser (l/min)",
+          "reset_accumulators": "Kumulierte COP-Summen zurücksetzen",
           "debug_logging": "Debug-Datei schreiben",
           "debug_duration": "Dauer",
           "debug_scan_interval": "Abfrageintervall während des Debuggens (Sekunden)"
+        },
+        "data_description": {
+          "dhw_flow_threshold": "Volumenstrom, ab dem das Laden als Warmwasser gilt. Anlagenspezifisch: Volumenstrom beim Heizen und beim Warmwasser-Laden im Verlauf des Volumenstrom-Sensors ablesen und einen Wert dazwischen wählen. 58 ist der Wert der Anlage des Autors.",
+          "reset_accumulators": "Verwirft die gespeicherten kumulierten Summen (COP Heizen / Warmwasser / gesamt). Wird nicht gespeichert, gilt einmalig."
         }
       }
     }
@@ -103,7 +117,15 @@
       "lifetime_efficiency_jaz": { "name": "JAZ (Effizienz seit erster Messung)" },
       "computed_cop_flow_method": { "name": "COP (berechnet, Durchfluss-Methode)" },
       "electrical_energy_external": { "name": "Elektrische Energie (extern)" },
-      "heating_energy_total": { "name": "Heizenergie (gesamt, kWh)" }
+      "heating_energy_total": { "name": "Heizenergie (gesamt, kWh)" },
+      "operating_mode": {"name": "Betriebsart", "state": {"standby": "Standby", "starting": "Anlauf", "running": "Läuft", "heating": "Heizen", "hot_water": "Warmwasser", "defrost": "Abtauen", "run_on": "Nachlauf", "unknown": "Unbekannt"}, "state_attributes": {"status_code": {"name": "Statuscode"}, "reason": {"name": "Grund", "state": {"dhw_detection_not_configured": "Warmwasser-Erkennung nicht eingerichtet", "volume_flow_unavailable": "Volumenstrom nicht verfügbar", "unknown_status": "Unbekannter Statuswert"}}}},
+      "hot_water_heat_energy": {"name": "Wärme Warmwasser (berechnet)"},
+      "heating_electrical_energy": {"name": "Strom Heizen"},
+      "hot_water_electrical_energy": {"name": "Strom Warmwasser"},
+      "cop_heating": {"name": "COP Heizen (kumuliert)", "state_attributes": {"reason": {"name": "Grund", "state": {"dhw_detection_not_configured": "Warmwasser-Erkennung nicht eingerichtet", "waiting_for_data": "Wartet auf Daten"}}}},
+      "cop_hot_water": {"name": "COP Warmwasser (kumuliert)", "state_attributes": {"reason": {"name": "Grund", "state": {"dhw_detection_not_configured": "Warmwasser-Erkennung nicht eingerichtet", "waiting_for_data": "Wartet auf Daten"}}}},
+      "cop_total": {"name": "COP gesamt (kumuliert)", "state_attributes": {"reason": {"name": "Grund", "state": {"waiting_for_data": "Wartet auf Daten"}}, "method": {"name": "Methode", "state": {"counter_plus_dhw": "Heizzähler + Warmwasser-Wärme", "flow_integral": "Durchfluss-Integral"}}, "share_hot_water_electric": {"name": "Anteil Warmwasser am Strom"}, "share_hot_water_heat": {"name": "Anteil Warmwasser an der Wärme"}}},
+      "last_run_cop": {"name": "COP letzter Lauf", "state_attributes": {"reason": {"name": "Grund", "state": {"no_run_yet": "Noch kein Lauf", "waiting_for_data": "Wartet auf Daten"}}, "method": {"name": "Methode", "state": {"counter_plus_dhw": "Heizzähler + Warmwasser-Wärme", "flow_integral": "Durchfluss-Integral"}}, "duration_min": {"name": "Dauer (min)"}, "flow_temp_max": {"name": "Vorlauf max. (°C)"}, "heat_kwh": {"name": "Wärme (kWh)"}, "electric_kwh": {"name": "Strom (kWh)"}, "hot_water_share": {"name": "Anteil Warmwasser"}, "defrost_min": {"name": "Abtauen (min)"}, "partial": {"name": "Unvollständig"}}}
     }
   }
 }

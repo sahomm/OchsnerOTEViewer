@@ -121,6 +121,30 @@ DEBUG_MAX_BYTES = 10 * 1024 * 1024  # rotated once to "<file>.1", so at most ~20
 CONF_DEBUG_DURATION = "debug_duration"
 CONF_DEBUG_EXPIRES = "debug_expires"
 
+# Hot-water detection and the cumulative COP totals (accounting.py). Set in the setup form
+# (entry.data) and overridable in the options (entry.options); the defaults keep the
+# behaviour of earlier versions (no detection).
+CONF_DHW_FLOW_DETECTION = "dhw_flow_detection"
+CONF_DHW_FLOW_THRESHOLD = "dhw_flow_threshold"
+DEFAULT_DHW_FLOW_THRESHOLD = 58.0
+DHW_FLOW_THRESHOLD_MIN = 5.0
+DHW_FLOW_THRESHOLD_MAX = 200.0
+DHW_FLOW_THRESHOLD_STEP = 0.5
+# One-shot switch (setup form and options form): discard the cumulative totals. Never stored.
+CONF_RESET_ACCUMULATORS = "reset_accumulators"
+# The totals live in a Store that survives removing the config entry (like the history does).
+ACCOUNTING_STORE_VERSION = 1
+ACCOUNTING_SAVE_DELAY_SECONDS = 120
+# Entity IDs of the sensors added in 0.15.0 are set explicitly, so they do not pick up the
+# area of the device as a prefix (Home Assistant's default). Existing entities keep their IDs.
+ENTITY_ID_PREFIX = "ochsner_heatpump"
+
+
+def accounting_store_key(connection_id: str) -> str:
+    """Storage key for one gateway (host:port:slave); the colons are not file-name friendly."""
+    return f"{DOMAIN}.accounting_{connection_id.replace(':', '_').replace('.', '_')}"
+
+
 # Feature flags used to gate sensors that could not be validated against real hardware -
 # see the "requires_feature" docstring note below for why.
 FEATURE_COOLING = "cooling"
@@ -552,5 +576,63 @@ DERIVED_SENSORS: tuple[OchsnerDerivedSensorDescription, ...] = (
         unit=UnitOfEnergy.KILO_WATT_HOUR,
         state_class=SensorStateClass.TOTAL_INCREASING,
         device_class=SensorDeviceClass.ENERGY,
+    ),
+)
+
+
+# Operating mode and the heating / hot-water accounting (accounting.py), 0.15.0.
+# `needs`: "always" | "electric" (an electricity source, as for the JAZ) |
+# "electric_dhw" (electricity source and hot-water detection).
+NEEDS_ALWAYS = "always"
+NEEDS_ELECTRIC = "electric"
+NEEDS_ELECTRIC_DHW = "electric_dhw"
+
+
+@dataclass(frozen=True)
+class OchsnerAccountingSensorDescription:
+    key: str
+    needs: str
+    unit: str | None = None
+    state_class: SensorStateClass | None = None
+    device_class: SensorDeviceClass | None = None
+    entity_category: EntityCategory | None = None
+
+
+ACCOUNTING_SENSORS: tuple[OchsnerAccountingSensorDescription, ...] = (
+    OchsnerAccountingSensorDescription(
+        key="operating_mode", needs=NEEDS_ALWAYS, device_class=SensorDeviceClass.ENUM
+    ),
+    OchsnerAccountingSensorDescription(
+        key="hot_water_heat_energy",
+        needs=NEEDS_ELECTRIC_DHW,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+    ),
+    OchsnerAccountingSensorDescription(
+        key="heating_electrical_energy",
+        needs=NEEDS_ELECTRIC_DHW,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+    ),
+    OchsnerAccountingSensorDescription(
+        key="hot_water_electrical_energy",
+        needs=NEEDS_ELECTRIC_DHW,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+    ),
+    OchsnerAccountingSensorDescription(
+        key="cop_heating", needs=NEEDS_ELECTRIC_DHW, state_class=SensorStateClass.MEASUREMENT
+    ),
+    OchsnerAccountingSensorDescription(
+        key="cop_hot_water", needs=NEEDS_ELECTRIC_DHW, state_class=SensorStateClass.MEASUREMENT
+    ),
+    OchsnerAccountingSensorDescription(
+        key="cop_total", needs=NEEDS_ELECTRIC, state_class=SensorStateClass.MEASUREMENT
+    ),
+    OchsnerAccountingSensorDescription(
+        key="last_run_cop", needs=NEEDS_ELECTRIC, state_class=SensorStateClass.MEASUREMENT
     ),
 )

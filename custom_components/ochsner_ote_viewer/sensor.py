@@ -1,7 +1,9 @@
 """Sensor platform for the Ochsner OTE Viewer integration."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from typing import Any
+
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -9,16 +11,23 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .accounting import MODES
 from .const import (
+    ACCOUNTING_SENSORS,
     COMBINED_COUNTERS,
     CONF_HAS_AUXILIARY_HEATER,
     CONF_HAS_COOLING,
     CONF_SLAVE_ID,
     DERIVED_SENSORS,
     DOMAIN,
+    ENTITY_ID_PREFIX,
     FEATURE_AUXILIARY_HEATER,
+    NEEDS_ALWAYS,
+    NEEDS_ELECTRIC,
+    NEEDS_ELECTRIC_DHW,
     FEATURE_COOLING,
     SENSORS,
+    OchsnerAccountingSensorDescription,
     OchsnerCombinedCounterDescription,
     OchsnerDerivedSensorDescription,
     OchsnerSensorDescription,
@@ -79,6 +88,22 @@ async def async_setup_entry(
         OchsnerDerivedSensor(coordinator, entry, description)
         for description in DERIVED_SENSORS
         if _derived_wanted(description.key)
+    )
+    # Operating mode and the heating / hot-water accounting. Every key needs an explicit
+    # condition here (_derived_wanted above answers True for unknown keys).
+    def _accounting_wanted(needs: str) -> bool:
+        if needs == NEEDS_ALWAYS:
+            return True
+        if needs == NEEDS_ELECTRIC:
+            return coordinator.has_electrical_source
+        if needs == NEEDS_ELECTRIC_DHW:
+            return coordinator.has_electrical_source and coordinator.dhw_detection_enabled
+        return False
+
+    entities.extend(
+        OchsnerAccountingSensor(coordinator, entry, description)
+        for description in ACCOUNTING_SENSORS
+        if _accounting_wanted(description.needs)
     )
     async_add_entities(entities)
 
@@ -166,3 +191,57 @@ class OchsnerDerivedSensor(_OchsnerBaseSensor):
         looks like an error to users."""
         reason = self.coordinator.reasons.get(self._key)
         return {"reason": reason} if reason else None
+
+
+class OchsnerAccountingSensor(_OchsnerBaseSensor):
+    """Operating mode and the cumulative heating / hot-water figures (accounting.py)."""
+
+    def __init__(
+        self,
+        coordinator: OchsnerOteViewerCoordinator,
+        entry: ConfigEntry,
+        description: OchsnerAccountingSensorDescription,
+    ) -> None:
+        super().__init__(coordinator, entry, description.key)
+        # Explicit entity ID, so a device area is not prefixed (see const.ENTITY_ID_PREFIX);
+        # only applies when the entity is first registered, existing IDs stay.
+        self.entity_id = f"sensor.{ENTITY_ID_PREFIX}_{description.key}"
+        self._attr_native_unit_of_measurement = description.unit
+        self._attr_state_class = description.state_class
+        self._attr_device_class = description.device_class
+        self._attr_entity_category = description.entity_category
+        if description.device_class == SensorDeviceClass.ENUM:
+            self._attr_options = list(MODES)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        snapshot = self.coordinator.accounting_snapshot
+        if not snapshot:
+            return None
+        key = self._key
+        attributes: dict[str, Any] = {}
+        if key == "operating_mode":
+            attributes["status_code"] = snapshot.get("status_code")
+            if snapshot.get("mode_reason"):
+                attributes["reason"] = snapshot["mode_reason"]
+        elif key in ("cop_heating", "cop_hot_water"):
+            if snapshot.get(f"{key}_reason"):
+                attributes["reason"] = snapshot[f"{key}_reason"]
+        elif key == "cop_total":
+            attributes["method"] = snapshot.get("cop_total_method")
+            if snapshot.get("cop_total_reason"):
+                attributes["reason"] = snapshot["cop_total_reason"]
+            for name in ("share_hot_water_electric", "share_hot_water_heat"):
+                if snapshot.get(name) is not None:
+                    attributes[name] = snapshot[name]
+        elif key == "last_run_cop":
+            last_run = snapshot.get("last_run")
+            if not last_run:
+                attributes["reason"] = "no_run_yet"
+            else:
+                if last_run.get("cop") is None:
+                    attributes["reason"] = "waiting_for_data"
+                for name, value in last_run.items():
+                    if name != "cop" and value is not None:
+                        attributes[name] = value
+        return attributes or None

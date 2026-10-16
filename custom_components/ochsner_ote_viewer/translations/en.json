@@ -11,7 +11,14 @@
           "scan_interval": "Poll interval (seconds)",
           "has_cooling": "System has an active cooling function",
           "has_auxiliary_heater": "System has an Ochsner-controlled auxiliary heater (\"Zusatzheizung\")",
+          "dhw_flow_detection": "Detect hot water by volume flow",
+          "dhw_flow_threshold": "Hot-water flow threshold (l/min)",
+          "reset_accumulators": "Reset the cumulative COP totals",
           "configure_external_sensors": "Set up more accurate heat pump efficiency figures (optional, via an external electricity meter such as a Shelly 3EM)"
+        },
+        "data_description": {
+          "dhw_flow_threshold": "Volume flow above which charging counts as hot water. Plant-specific: read the flow while heating and while charging hot water off the history of the volume-flow sensor and pick a value in between. 58 is the value of the author's plant.",
+          "reset_accumulators": "Discards the saved cumulative totals (COP heating / hot water / total). Not stored, applies once."
         }
       },
       "external_sensors": {
@@ -48,12 +55,19 @@
   "options": {
     "step": {
       "init": {
-        "title": "Debug mode",
-        "description": "Write every poll (all raw registers, changed registers, derived values) as one JSON line to \"ochsner_ote_viewer_debug.jsonl\" in the Home Assistant config folder, so a cycle can be analysed afterwards. Off by default. \"72 hours\" switches the mode off by itself; the time limit survives restarts and updates. \"Unlimited\" keeps writing until you switch it off - at your own risk: a line is written every poll, the file sits in the Home Assistant config folder and is rotated at 10 MB (about 20 MB at most, older data is overwritten), so it adds write load and uses storage. Contains no host or credentials.",
+        "title": "Options",
+        "description": "Hot-water detection: with a flow threshold set, the integration tells heating and hot-water charging apart and calculates COP heating, hot water and total; without it the heating and hot-water COP stay unknown. Enabling or disabling it reloads the integration. Debug mode: Write every poll (all raw registers, changed registers, derived values) as one JSON line to \"ochsner_ote_viewer_debug.jsonl\" in the Home Assistant config folder, so a cycle can be analysed afterwards. Off by default. \"72 hours\" switches the mode off by itself; the time limit survives restarts and updates. \"Unlimited\" keeps writing until you switch it off - at your own risk: a line is written every poll, the file sits in the Home Assistant config folder and is rotated at 10 MB (about 20 MB at most, older data is overwritten), so it adds write load and uses storage. Contains no host or credentials.",
         "data": {
+          "dhw_flow_detection": "Detect hot water by volume flow",
+          "dhw_flow_threshold": "Hot-water flow threshold (l/min)",
+          "reset_accumulators": "Reset the cumulative COP totals",
           "debug_logging": "Write debug file",
           "debug_duration": "Duration",
           "debug_scan_interval": "Poll interval while debugging (seconds)"
+        },
+        "data_description": {
+          "dhw_flow_threshold": "Volume flow above which charging counts as hot water. Plant-specific: read the flow while heating and while charging hot water off the history of the volume-flow sensor and pick a value in between. 58 is the value of the author's plant.",
+          "reset_accumulators": "Discards the saved cumulative totals (COP heating / hot water / total). Not stored, applies once."
         }
       }
     }
@@ -103,7 +117,15 @@
       "lifetime_efficiency_jaz": { "name": "SPF (efficiency since first measurement)" },
       "computed_cop_flow_method": { "name": "COP (computed, flow method)" },
       "electrical_energy_external": { "name": "Electrical energy (external)" },
-      "heating_energy_total": { "name": "Heating energy (total, kWh)" }
+      "heating_energy_total": { "name": "Heating energy (total, kWh)" },
+      "operating_mode": {"name": "Operating mode", "state": {"standby": "Standby", "starting": "Starting", "running": "Running", "heating": "Heating", "hot_water": "Hot water", "defrost": "Defrost", "run_on": "Run-on", "unknown": "Unknown"}, "state_attributes": {"status_code": {"name": "Status code"}, "reason": {"name": "Reason", "state": {"dhw_detection_not_configured": "Hot-water detection not set up", "volume_flow_unavailable": "Volume flow unavailable", "unknown_status": "Unknown status value"}}}},
+      "hot_water_heat_energy": {"name": "Heat hot water (calculated)"},
+      "heating_electrical_energy": {"name": "Electricity heating"},
+      "hot_water_electrical_energy": {"name": "Electricity hot water"},
+      "cop_heating": {"name": "COP heating (cumulative)", "state_attributes": {"reason": {"name": "Reason", "state": {"dhw_detection_not_configured": "Hot-water detection not set up", "waiting_for_data": "Waiting for data"}}}},
+      "cop_hot_water": {"name": "COP hot water (cumulative)", "state_attributes": {"reason": {"name": "Reason", "state": {"dhw_detection_not_configured": "Hot-water detection not set up", "waiting_for_data": "Waiting for data"}}}},
+      "cop_total": {"name": "COP total (cumulative)", "state_attributes": {"reason": {"name": "Reason", "state": {"waiting_for_data": "Waiting for data"}}, "method": {"name": "Method", "state": {"counter_plus_dhw": "Heating meter + hot-water heat", "flow_integral": "Flow integral"}}, "share_hot_water_electric": {"name": "Hot-water share of electricity"}, "share_hot_water_heat": {"name": "Hot-water share of heat"}}},
+      "last_run_cop": {"name": "COP last run", "state_attributes": {"reason": {"name": "Reason", "state": {"no_run_yet": "No run yet", "waiting_for_data": "Waiting for data"}}, "method": {"name": "Method", "state": {"counter_plus_dhw": "Heating meter + hot-water heat", "flow_integral": "Flow integral"}}, "duration_min": {"name": "Duration (min)"}, "flow_temp_max": {"name": "Flow temp. max (°C)"}, "heat_kwh": {"name": "Heat (kWh)"}, "electric_kwh": {"name": "Electricity (kWh)"}, "hot_water_share": {"name": "Hot-water share"}, "defrost_min": {"name": "Defrost (min)"}, "partial": {"name": "Partial"}}}
     }
   }
 }

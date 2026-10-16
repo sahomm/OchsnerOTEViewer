@@ -14,6 +14,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ochsner OTE Viewer from a config entry."""
     coordinator = OchsnerOteViewerCoordinator(hass, entry)
+    await coordinator.async_load_accounting()
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
@@ -23,13 +24,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_entry_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Apply changed options without a reload (the entry is also updated for the JAZ
-    baselines, which must not trigger one)."""
+    """Apply changed options without a reload, except a changed hot-water detection
+    switch (the entry is also updated for the JAZ baselines, which must not trigger one)."""
     coordinator: OchsnerOteViewerCoordinator | None = hass.data.get(DOMAIN, {}).get(
         entry.entry_id
     )
     if coordinator is not None:
         coordinator.apply_options()
+        if coordinator.dhw_detection_changed:
+            # The hot-water switch decides which sensors exist; the threshold alone
+            # takes effect without a reload.
+            hass.config_entries.async_schedule_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

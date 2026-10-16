@@ -19,10 +19,14 @@ from homeassistant.const import (
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .accounting import Accounting
 from .const import (
+    ACCOUNTING_SAVE_DELAY_SECONDS,
+    ACCOUNTING_STORE_VERSION,
     BASE_REGISTER,
     BLOCK_SIZE,
     COMBINED_COUNTERS,
@@ -30,16 +34,23 @@ from .const import (
     CONF_DEBUG_EXPIRES,
     CONF_DEBUG_INTERVAL,
     CONF_DEBUG_LOGGING,
+    CONF_DHW_FLOW_DETECTION,
+    CONF_DHW_FLOW_THRESHOLD,
     CONF_SLAVE_ID,
     DEBUG_FILE_NAME,
     DEBUG_MAX_BYTES,
     DEFAULT_DEBUG_INTERVAL,
+    DEFAULT_DHW_FLOW_THRESHOLD,
     DEFAULT_SCAN_INTERVAL,
+    DHW_FLOW_THRESHOLD_MAX,
+    DHW_FLOW_THRESHOLD_MIN,
     DOMAIN,
     EXTERNAL_ENERGY_SENSOR_KEYS,
     EXTERNAL_POWER_SENSOR_KEYS,
     SENSORS,
     STORAGE_KEY_JAZ_BASELINES,
+    accounting_store_key,
+    build_connection_id,
 )
 from .counters import STATE_HELD, STATE_OK, GuardedCounter
 from .debug_timer import DEFAULT_DURATION, DURATION_UNLIMITED, compute_expiry, is_expired
@@ -128,6 +139,21 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._heating_guard = GuardedCounter()
         self._electrical_guard = GuardedCounter()
         self._heating_total_exact: float | None = None
+        # Operating mode and the heating / hot-water accounting (accounting.py). The
+        # totals are loaded from the Store by async_load_accounting() before the first poll.
+        self._electrical_total_kwh: float | None = None
+        self.accounting_snapshot: dict[str, Any] = {}
+        detection, threshold = self._dhw_settings()
+        # What the entities are created for; a changed detection switch needs a reload.
+        self._dhw_detection_at_setup = detection
+        self.accounting = Accounting(threshold if detection else None)
+        self._store: Store = Store(
+            hass,
+            ACCOUNTING_STORE_VERSION,
+            accounting_store_key(
+                build_connection_id(self._host, self._port, self._slave_id)
+            ),
+        )
         self.client = AsyncModbusTcpClient(host=self._host, port=self._port, timeout=5)
 
         # Debug mode (options flow, off by default) - see const.py CONF_DEBUG_LOGGING.
@@ -144,6 +170,8 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         reason (JAZ baselines, or the expiry written below), so it must never reload
         anything."""
         options = self._entry.options
+        detection, threshold = self._dhw_settings()
+        self.accounting.set_threshold(threshold if detection else None)
         enabled = bool(options.get(CONF_DEBUG_LOGGING, False))
         if enabled:
             now = dt_util.utcnow()
@@ -169,6 +197,76 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else self._base_scan_interval
         )
         self.update_interval = timedelta(seconds=interval)
+
+    def _dhw_settings(self) -> tuple[bool, float]:
+        """Hot-water detection switch and flow threshold (l/min): setup values in
+        entry.data, overridden by the options."""
+        source = {**self._entry.data, **self._entry.options}
+        detection = bool(source.get(CONF_DHW_FLOW_DETECTION, False))
+        try:
+            threshold = float(source.get(CONF_DHW_FLOW_THRESHOLD, DEFAULT_DHW_FLOW_THRESHOLD))
+        except (TypeError, ValueError):
+            threshold = DEFAULT_DHW_FLOW_THRESHOLD
+        return detection, min(max(threshold, DHW_FLOW_THRESHOLD_MIN), DHW_FLOW_THRESHOLD_MAX)
+
+    @property
+    def dhw_detection_changed(self) -> bool:
+        """True if the detection switch differs from what the entities were created for."""
+        return self._dhw_settings()[0] != self._dhw_detection_at_setup
+
+    @property
+    def dhw_detection_enabled(self) -> bool:
+        return self._dhw_detection_at_setup
+
+    @property
+    def has_electrical_source(self) -> bool:
+        """An electricity source for the accounting: external energy sensors or Ochsner's
+        own register (same condition as the JAZ). Valid once the first poll has run."""
+        return self.has_external_energy_sensors or (
+            self.data is not None
+            and self.data.get("electrical_energy_kwh") is not None
+            and self.data.get("electrical_energy_mwh") is not None
+        )
+
+    async def async_load_accounting(self) -> None:
+        """Load the cumulative totals saved earlier (a removed entry keeps them)."""
+        try:
+            self.accounting.load(await self._store.async_load())
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Could not read the saved COP totals, starting from zero", exc_info=True)
+
+    async def async_reset_accumulators(self) -> None:
+        """Discard the cumulative COP totals (options form)."""
+        self.accounting.reset()
+        await self._store.async_save(self.accounting.to_dict())
+        _LOGGER.info("The cumulative COP totals were reset")
+
+    def _update_accounting(self, data: dict[str, Any], now_ts: float) -> None:
+        mode = self.accounting.update(
+            now_ts,
+            data.get("heat_pump_status"),
+            data.get("volume_flow"),
+            data.get("heat_generator_flow_temperature"),
+            data.get("heat_generator_return_temperature"),
+            self._heating_total_exact,
+            self._electrical_total_kwh,
+            self.update_interval.total_seconds() if self.update_interval else 60.0,
+        )
+        snapshot = self.accounting.snapshot()
+        self.accounting_snapshot = snapshot
+        last_run = snapshot.get("last_run") or {}
+        data["operating_mode"] = mode
+        for key in (
+            "hot_water_heat_energy",
+            "heating_electrical_energy",
+            "hot_water_electrical_energy",
+            "cop_heating",
+            "cop_hot_water",
+            "cop_total",
+        ):
+            data[key] = snapshot[key]
+        data["last_run_cop"] = last_run.get("cop")
+        self._store.async_delay_save(self.accounting.to_dict, ACCOUNTING_SAVE_DELAY_SECONDS)
 
     def _update_options(self, changes: dict[str, Any], remove: tuple[str, ...] = ()) -> None:
         """Write options without touching the others (the options flow merges likewise)."""
@@ -221,6 +319,7 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             data[counter.key] = thousands * 1000 + ones
 
         now_ts = dt_util.utcnow().timestamp()
+        self._electrical_total_kwh = None
         self._heating_total_exact = self._guarded_total(
             self._heating_guard,
             data.get("heating_energy_mwh"),
@@ -238,6 +337,7 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["electrical_energy_external"] = (
             round(external_energy, 3) if external_energy is not None else None
         )
+        self._update_accounting(data, now_ts)
 
         if self._debug_enabled:
             await self._async_write_debug(registers, data)
@@ -409,6 +509,7 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 dt_util.utcnow().timestamp(),
             )
 
+        self._electrical_total_kwh = electrical_total
         heating_delta = self._delta_since_baseline("heating", heating_total)
         electrical_delta = self._delta_since_baseline("electrical", electrical_total)
         # Until there is real data the sensor reads 0.0 (documented in the README) rather
@@ -490,5 +591,9 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return round(thermal_kw / electrical_kw, 2)
 
     async def async_close(self) -> None:
-        """Close the Modbus TCP connection."""
+        """Save the COP totals and close the Modbus TCP connection."""
+        try:
+            await self._store.async_save(self.accounting.to_dict())
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Could not save the COP totals", exc_info=True)
         self.client.close()

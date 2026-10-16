@@ -13,17 +13,27 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import meter_profiles
 from .const import (
+    ACCOUNTING_STORE_VERSION,
     BASE_REGISTER,
     CONF_CONFIGURE_EXTERNAL_SENSORS,
     CONF_DEBUG_DURATION,
     CONF_DEBUG_EXPIRES,
     CONF_DEBUG_INTERVAL,
     CONF_DEBUG_LOGGING,
+    CONF_DHW_FLOW_DETECTION,
+    CONF_DHW_FLOW_THRESHOLD,
+    CONF_RESET_ACCUMULATORS,
     DEFAULT_DEBUG_INTERVAL,
+    DEFAULT_DHW_FLOW_THRESHOLD,
+    DHW_FLOW_THRESHOLD_MAX,
+    DHW_FLOW_THRESHOLD_MIN,
+    DHW_FLOW_THRESHOLD_STEP,
+    accounting_store_key,
     build_connection_id,
     CONF_EXTERNAL_ENERGY_SENSOR_1,
     CONF_EXTERNAL_ENERGY_SENSOR_2,
@@ -78,6 +88,19 @@ EXTERNAL_POWER_SENSOR_SELECTOR = selector.EntitySelector(
     )
 )
 
+# Flow threshold (l/min) above which a running compressor counts as hot-water charging.
+# Plant-specific (it depends on pump and hydraulics) - read it off the history of the
+# volume-flow sensor. Shown as a plain number box, not a slider.
+DHW_FLOW_THRESHOLD_SELECTOR = selector.NumberSelector(
+    selector.NumberSelectorConfig(
+        min=DHW_FLOW_THRESHOLD_MIN,
+        max=DHW_FLOW_THRESHOLD_MAX,
+        step=DHW_FLOW_THRESHOLD_STEP,
+        mode=selector.NumberSelectorMode.BOX,
+        unit_of_measurement="l/min",
+    )
+)
+
 # Step 1: connection basics only. The 6 external-sensor fields live behind the
 # CONF_CONFIGURE_EXTERNAL_SENSORS checkbox on a separate step (see
 # async_step_external_sensors) instead of being shown to every user up front - most
@@ -95,6 +118,13 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         # const.py "UNVERIFIED REGISTERS" for why.
         vol.Optional(CONF_HAS_COOLING, default=False): bool,
         vol.Optional(CONF_HAS_AUXILIARY_HEATER, default=False): bool,
+        # Hot-water detection by volume flow (accounting.py): off = earlier behaviour.
+        vol.Optional(CONF_DHW_FLOW_DETECTION, default=False): bool,
+        vol.Optional(CONF_DHW_FLOW_THRESHOLD, default=DEFAULT_DHW_FLOW_THRESHOLD): vol.All(
+            DHW_FLOW_THRESHOLD_SELECTOR, vol.Coerce(float)
+        ),
+        # One-shot: discard cumulative COP totals saved by an earlier setup of this gateway.
+        vol.Optional(CONF_RESET_ACCUMULATORS, default=False): bool,
         vol.Optional(CONF_CONFIGURE_EXTERNAL_SENSORS, default=False): bool,
     }
 )
@@ -171,6 +201,21 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         self._base_data: dict[str, Any] = {}
+        self._reset_accumulators = False
+
+    async def _async_create_entry(self, data: dict[str, Any]) -> ConfigFlowResult:
+        """Create the entry; if asked to, discard the saved COP totals of this gateway first
+        (they survive removing the entry, like the history)."""
+        if self._reset_accumulators:
+            connection_id = build_connection_id(
+                data[CONF_HOST], data[CONF_PORT], data[CONF_SLAVE_ID]
+            )
+            await Store(
+                self.hass, ACCOUNTING_STORE_VERSION, accounting_store_key(connection_id)
+            ).async_remove()
+        return self.async_create_entry(
+            title=f"Ochsner OTE Viewer ({data[CONF_HOST]})", data=data
+        )
 
     @staticmethod
     @callback
@@ -204,13 +249,11 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 configure_external_sensors = user_input.pop(
                     CONF_CONFIGURE_EXTERNAL_SENSORS, False
                 )
+                self._reset_accumulators = bool(user_input.pop(CONF_RESET_ACCUMULATORS, False))
                 self._base_data = user_input
                 if configure_external_sensors:
                     return await self.async_step_external_sensors()
-                return self.async_create_entry(
-                    title=f"Ochsner OTE Viewer ({self._base_data[CONF_HOST]})",
-                    data=self._base_data,
-                )
+                return await self._async_create_entry(self._base_data)
 
         return self.async_show_form(
             step_id="user",
@@ -254,11 +297,7 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         resolved[EXTERNAL_POWER_SENSOR_KEYS[i]] = power_entity_id
 
             if not errors:
-                data = {**self._base_data, **resolved}
-                return self.async_create_entry(
-                    title=f"Ochsner OTE Viewer ({data[CONF_HOST]})",
-                    data=data,
-                )
+                return await self._async_create_entry({**self._base_data, **resolved})
 
         return self.async_show_form(
             step_id="external_sensors",
@@ -270,7 +309,8 @@ class OchsnerOteViewerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
-    """Options: the optional debug mode (see const.py CONF_DEBUG_LOGGING)."""
+    """Options: hot-water detection, resetting the COP totals, and the optional debug
+    mode (see const.py CONF_DEBUG_LOGGING)."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -281,6 +321,11 @@ class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
             # debug expiry, and anything later versions add) must survive a save.
             data = {**options, **user_input}
             data.pop(CONF_DEBUG_EXPIRES, None)
+            # One-shot, never stored.
+            if data.pop(CONF_RESET_ACCUMULATORS, False):
+                coordinator = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+                if coordinator is not None:
+                    await coordinator.async_reset_accumulators()
             if user_input.get(CONF_DEBUG_LOGGING):
                 duration = user_input.get(CONF_DEBUG_DURATION, DEFAULT_DURATION)
                 now = dt_util.utcnow()
@@ -298,8 +343,21 @@ class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
                     data[CONF_DEBUG_EXPIRES] = expires
             return self.async_create_entry(data=data)
 
+        # The hot-water settings were first given in the setup form (entry.data); the
+        # options override them, so show the effective values.
+        suggested = {
+            key: self.config_entry.data[key]
+            for key in (CONF_DHW_FLOW_DETECTION, CONF_DHW_FLOW_THRESHOLD)
+            if key in self.config_entry.data
+        }
+        suggested.update(options)
         schema = vol.Schema(
             {
+                vol.Optional(CONF_DHW_FLOW_DETECTION, default=False): bool,
+                vol.Optional(
+                    CONF_DHW_FLOW_THRESHOLD, default=DEFAULT_DHW_FLOW_THRESHOLD
+                ): vol.All(DHW_FLOW_THRESHOLD_SELECTOR, vol.Coerce(float)),
+                vol.Optional(CONF_RESET_ACCUMULATORS, default=False): bool,
                 vol.Optional(CONF_DEBUG_LOGGING, default=False): bool,
                 vol.Optional(CONF_DEBUG_DURATION, default=DEFAULT_DURATION): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -315,5 +373,5 @@ class OchsnerOteViewerOptionsFlow(config_entries.OptionsFlow):
         )
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(schema, options),
+            data_schema=self.add_suggested_values_to_schema(schema, suggested),
         )
