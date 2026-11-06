@@ -48,8 +48,9 @@ MODES = (
     MODE_UNKNOWN,
 )
 
-# Observed values of the heat pump status register (10D); the meaning comes from
-# observation, not from the manufacturer's manual.
+# Values of the heat pump status register (10D). 12 (defrost) and 9 (draining) are listed in the
+# OTE operating instructions (status code 02-053) and were confirmed on real defrost cycles;
+# 29 (overshoot) is not listed there and comes from observation.
 STATUS_STANDBY = 0
 STATUS_ACTIVE = (1, 29)
 STATUS_STARTING = 2

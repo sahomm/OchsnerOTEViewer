@@ -288,9 +288,11 @@ nicht berücksichtigt sind; mit Schwelle rechnet er aus Heizzähler und Warmwass
   verankern nur neu; Wärme und Strom dieses Intervalls fallen gemeinsam weg.
 - Die Werte sind leicht vom Abfragetakt abhängig (bei 10, 30 und 60 s Takt etwa ±0,02 bis
   ±0,03); die Wärme nach einem Abtauen kommt rund 40 s verzögert an.
-- Die Zuordnung der Statuswerte (z. B. `12` und `9` = Abtauen, `29` = Auslauf bei laufendem
-  Verdichter) stammt aus Beobachtung, nicht aus dem Herstellerhandbuch; das Abtauen wurde bisher
-  nur einmal beobachtet. Unbekannte Werte erscheinen als „Unbekannt“.
+- Die Statuswerte `12` (Abtauen) und `9` (Abtropfen) stehen in der Bedienungsanleitung der OTE
+  (Statuscode 02-053) und wurden an mehreren Abtauvorgängen bestätigt (Verdichter aus, Heiß- und
+  Sauggasdruck vertauscht, Vorlauf unter Rücklauf, Wärmequelle erwärmt sich); beide gelten als
+  Abtauen. `29` (Auslauf bei laufendem Verdichter) steht dort nicht und stammt aus Beobachtung.
+  Unbekannte Werte erscheinen als „Unbekannt“.
 
 **Zurücksetzen und Neuanlage.** Die Summen werden gespeichert und überleben Neustart und
 Update. Unter *Konfigurieren* (und in der Einrichtung) lassen sie sich mit **„Kumulierte

@@ -277,9 +277,11 @@ heat (`method: counter_plus_dhw`).
   re-anchors; heat and electricity of that interval are dropped together.
 - The values depend slightly on the poll interval (about ±0.02 to ±0.03 at 10, 30 and 60 s);
   the heat after a defrost arrives about 40 s late.
-- The meaning of the status values (e.g. `12` and `9` = defrost, `29` = overshoot with the
-  compressor still running) comes from observation, not from the manufacturer's manual;
-  defrost has only been observed once so far. Unknown values show up as "Unknown".
+- The status values `12` (defrost) and `9` (draining) are listed in the OTE operating
+  instructions (status code 02-053) and were confirmed on several defrost cycles (compressor
+  off, hot-gas and suction pressure swapped, flow below return temperature, heat source warming
+  up); both count as defrost. `29` (overshoot with the compressor still running) is not listed
+  there and comes from observation. Unknown values show up as "Unknown".
 
 **Reset and re-adding.** The totals are saved and survive restarts and updates. Under
 *Configure* (and during setup) **"Reset the cumulative COP totals"** discards them once. They
