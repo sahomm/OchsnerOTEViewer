@@ -56,15 +56,11 @@ CONF_HAS_AUXILIARY_HEATER = "has_auxiliary_heater"
 # used to control config-flow navigation, never stored in the final config entry.
 CONF_CONFIGURE_EXTERNAL_SENSORS = "configure_external_sensors"
 
-# Internal (not user-facing/not shown in any form) config-entry key the coordinator
-# uses to persist the heating/electrical energy readings it first saw, so
-# lifetime_efficiency_jaz can be computed from the *change* since then rather than
-# from Ochsner's raw since-commissioning counter - see coordinator.py
-# _delta_since_baseline() for why: dividing a years-old counter by a freshly added
-# external meter's few-day counter produces a meaningless ratio. Applies the same way
-# regardless of whether the electrical side comes from Ochsner's own register or an
-# external sensor - both are just "some ever-growing counter" from this sensor's
-# point of view.
+# Internal (not user-facing/not shown in any form) config-entry key that versions up to
+# 0.15.0 used to persist the heating/electrical energy readings they first saw, so
+# lifetime_efficiency_jaz could be computed from the *change* since then. Since 0.15.1 the
+# sensor uses reset-proof running sums (efficiency.py, stored in its own Store); the old
+# baselines are only read once to carry the accumulated values over, and not written any more.
 STORAGE_KEY_JAZ_BASELINES = "_jaz_baselines"
 # Optional external electricity sensors (e.g. a Shelly 3EM's three per-phase energy
 # entities) used for the lifetime-efficiency sensor instead of Ochsner's own
@@ -138,6 +134,14 @@ ACCOUNTING_SAVE_DELAY_SECONDS = 120
 # Entity IDs of the sensors added in 0.15.0 are set explicitly, so they do not pick up the
 # area of the device as a prefix (Home Assistant's default). Existing entities keep their IDs.
 ENTITY_ID_PREFIX = "ochsner_heatpump"
+
+
+# Running sums of the JAZ sensor (efficiency.py), 0.15.1.
+JAZ_STORE_VERSION = 1
+
+
+def jaz_store_key(connection_id: str) -> str:
+    return f"{DOMAIN}.jaz_{connection_id.replace(':', '_').replace('.', '_')}"
 
 
 def accounting_store_key(connection_id: str) -> str:
@@ -529,11 +533,10 @@ COMBINED_COUNTERS: tuple[OchsnerCombinedCounterDescription, ...] = (
     ),
 )
 
-# Efficiency since this sensor first got a reading (or since its tracked baseline was
-# last reset - see coordinator.py _delta_since_baseline), computed as the *change* in
-# heating_energy divided by the *change* in electrical_energy, not their raw lifetime
-# totals - see _delta_since_baseline for why (a years-old Ochsner counter divided by a
-# freshly-added external meter's few-day counter is meaningless). ASSUMPTION, not
+# Efficiency since the running sums were started (efficiency.py, reset-proof since 0.15.1),
+# computed as the heating energy accumulated divided by the electrical energy accumulated,
+# not the raw lifetime totals (a years-old Ochsner counter divided by a freshly-added
+# external meter's few-day counter is meaningless). ASSUMPTION, not
 # explicitly documented in the Ochsner PDF: the kWh/MWh register pairs are combined as
 # mwh*1000 + kwh (with heating_energy_kwh already scaled to real kWh, see its comment) -
 # the manual only spells out a combination for Schaltzyklen/Betriebsstunden, not for the

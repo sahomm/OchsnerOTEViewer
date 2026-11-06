@@ -19,7 +19,7 @@ This project was built by [sahomm](https://github.com/sahomm) with the help of C
 
 ## Upgrade notes
 
-From **v0.15.0** on, no remove/re-add is needed after an update: the new sensors appear automatically, existing sensors, history and the SPF baseline stay unchanged. All changes per version: [CHANGELOG.md](CHANGELOG.md).
+From **v0.15.0** on, no remove/re-add is needed after an update: the new sensors appear automatically, existing sensors and history stay unchanged. From **v0.15.1** the SPF takes over its previous values from the old baseline on the first start (a state that is physically impossible after a half-handled counter reset is dropped and the SPF starts again). All changes per version: [CHANGELOG.md](CHANGELOG.md).
 
 **As of v0.11.0:**
 
@@ -117,12 +117,22 @@ can confirm (or correct) the readings, please open an issue or PR.
 
 **Efficiency sensor (SPF):** the "SPF (heating meter ÷ total electricity)" sensor is heating
 energy ÷ electrical energy - but **not** from the raw
-lifetime counter values, from the **change since the first successful reading** (or since
-a detected counter reset) instead. Why: Ochsner's own heating-energy counter runs since the
+lifetime counter values, from two running sums that start counting at the first start
+instead. Why: Ochsner's own heating-energy counter runs since the
 system's commissioning (often years), while a freshly added external electricity meter only
 has a few days of data - dividing the raw lifetime totals would produce a meaningless number
 (observed in practice: an SPF of 126 instead of a realistic ~3-5). This applies regardless of
 whether the electrical side comes from Ochsner's own register or an external sensor.
+
+**Counter resets (from v0.15.1):** every year the controller starts a new consumption period
+and sets its energy counters (heating, hot water, defrost, cooling energy) back to 0; the
+values of the previous years are shown on the controller's display under "Statistik" and are
+not available over Modbus. A replaced or reset external electricity meter does the same
+with its counter. The integration detects any decrease of a counter by itself, keeps
+counting from the reset and leaves the other side untouched, **without a setting and
+regardless of when the reset happens**. The "Heating energy (total, kWh)" sensor drops to 0
+at the reset like any counter; Home Assistant handles that correctly in statistics and the
+Energy dashboard.
 
 Note: the controller's heating-energy counter does not include hot water, but the electricity
 does. This SPF is therefore below the true overall value; the complete value is shown by
@@ -205,8 +215,7 @@ Assistant's long-term statistics start tracking its history from now on.
 
 **"0" for COP and SPF is normal, not an error:** the computed COP is an instantaneous value
 and only has a value while the compressor runs - while idle (most of the day) it reads **0**.
-The SPF reads **0** until at least 1 kWh of heating energy has accrued since the first
-measurement (one heating cycle delivers about 9 kWh) - so it is only calculated after the
+The SPF reads **0** until at least 1 kWh of heating energy has accrued since the sums were started (one heating cycle delivers about 9 kWh) - so it is only calculated after the
 first complete heating run. Both sensors have a `reason` attribute explaining why 0 is shown
 right now (e.g. `compressor_not_running`, `waiting_for_heating_data`). "Unknown", by
 contrast, means a real fault (e.g. `power_sensors_unavailable`). **Sensors only with a matching meter:** the computed COP is only
@@ -275,7 +284,7 @@ heat (`method: counter_plus_dhw`).
 **Reset and re-adding.** The totals are saved and survive restarts and updates. Under
 *Configure* (and during setup) **"Reset the cumulative COP totals"** discards them once. They
 also survive removing the integration and re-adding it with the same connection details; the
-SPF baseline starts again then, the entity IDs and the history stay.
+SPF sums are saved as well and continue, the entity IDs and the history stay.
 
 **Entity IDs.** New sensors get IDs of the form `sensor.ochsner_heatpump_<key>`, regardless
 of the area the device is in (Home Assistant otherwise puts the area name in front).

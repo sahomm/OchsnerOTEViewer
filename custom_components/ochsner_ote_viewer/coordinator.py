@@ -27,6 +27,7 @@ from .accounting import Accounting
 from .const import (
     ACCOUNTING_SAVE_DELAY_SECONDS,
     ACCOUNTING_STORE_VERSION,
+    JAZ_STORE_VERSION,
     BASE_REGISTER,
     BLOCK_SIZE,
     COMBINED_COUNTERS,
@@ -50,9 +51,11 @@ from .const import (
     SENSORS,
     STORAGE_KEY_JAZ_BASELINES,
     accounting_store_key,
+    jaz_store_key,
     build_connection_id,
 )
 from .counters import STATE_HELD, STATE_OK, GuardedCounter
+from .efficiency import LifetimeEfficiency
 from .debug_timer import DEFAULT_DURATION, DURATION_UNLIMITED, compute_expiry, is_expired
 from .registers import decode_register
 
@@ -132,8 +135,10 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Why a derived sensor currently has no value (None while it has one) - exposed
         # as the "reason" state attribute so "Unknown" isn't mistaken for an error.
         self.reasons: dict[str, str | None] = {}
-        # See _delta_since_baseline() - persisted across restarts in the config entry.
+        # Old baselines (up to 0.15.0): read once to carry the accumulated values over to the
+        # reset-proof sums (efficiency.py); never written any more.
         self._jaz_baselines: dict[str, float] = dict(entry.data.get(STORAGE_KEY_JAZ_BASELINES, {}))
+        self._efficiency = LifetimeEfficiency()
         # Guard the kWh+MWh pairs against the rollover moment - see counters.py. In memory
         # only: the first reading after a start is simply accepted.
         self._heating_guard = GuardedCounter()
@@ -153,6 +158,11 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             accounting_store_key(
                 build_connection_id(self._host, self._port, self._slave_id)
             ),
+        )
+        self._jaz_store: Store = Store(
+            hass,
+            JAZ_STORE_VERSION,
+            jaz_store_key(build_connection_id(self._host, self._port, self._slave_id)),
         )
         self.client = AsyncModbusTcpClient(host=self._host, port=self._port, timeout=5)
 
@@ -234,6 +244,10 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.accounting.load(await self._store.async_load())
         except Exception:  # noqa: BLE001
             _LOGGER.warning("Could not read the saved COP totals, starting from zero", exc_info=True)
+        try:
+            self._efficiency.load(await self._jaz_store.async_load())
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Could not read the saved JAZ sums, starting again", exc_info=True)
 
     async def async_reset_accumulators(self) -> None:
         """Discard the cumulative COP totals (options form)."""
@@ -452,38 +466,10 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return total
 
-    def _delta_since_baseline(self, key: str, current_total: float) -> float | None:
-        """Track *change* since a persisted baseline instead of a raw ever-growing
-        counter. Both heating_energy and electrical_energy are lifetime counters, but
-        they don't necessarily start counting from the same point in time - Ochsner's
-        own counters run since the heat pump's commissioning (potentially years), while
-        an external meter (or a not-previously-populated Ochsner electricity-meter
-        register) only starts from whenever it was added. Dividing one lifetime total
-        by the other then produces a meaningless ratio - observed in practice: JAZ=126
-        from a multi-year heating total over a few days of freshly-added Shelly data.
-
-        On the first reading (no baseline yet) or if the counter is now *lower* than
-        the baseline (the underlying counter itself got reset - possible for external
-        sensors just as much as for Ochsner's own registers, e.g. a replaced/reset
-        meter), the baseline is (re)anchored to the current value and persisted; no
-        delta is returned yet for that reading. Every reading after that returns
-        current - baseline. In practice this means lifetime_efficiency_jaz needs some
-        real runtime after setup (or after a reset) before it settles on a reliable
-        value - see README."""
-        baseline = self._jaz_baselines.get(key)
-        if baseline is None or current_total < baseline:
-            self._jaz_baselines[key] = current_total
-            self.hass.config_entries.async_update_entry(
-                self._entry,
-                data={**self._entry.data, STORAGE_KEY_JAZ_BASELINES: dict(self._jaz_baselines)},
-            )
-            return None
-        return round(current_total - baseline, 2)
-
     def _compute_lifetime_efficiency(self, data: dict[str, Any]) -> float | None:
-        """Heating energy / electrical energy *since this baseline was established*
-        (see _delta_since_baseline) - not a calendar-year JAZ/SPF and not an
-        instantaneous value either (see README). Uses the configured external energy
+        """Heating energy / electrical energy *since the sums were started* (efficiency.py:
+        reset-proof running sums, so a reset of either counter never skews the ratio) - not
+        a calendar-year JAZ/SPF and not an instantaneous value either (see README). Uses the configured external energy
         sensors if set, otherwise Ochsner's own electrical_energy_* registers (which
         most installations don't have populated - see const.py "UNVERIFIED
         REGISTERS")."""
@@ -510,22 +496,33 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
         self._electrical_total_kwh = electrical_total
-        heating_delta = self._delta_since_baseline("heating", heating_total)
-        electrical_delta = self._delta_since_baseline("electrical", electrical_total)
+        now_ts = dt_util.utcnow().timestamp()
+        if not self._efficiency.loaded:
+            # First start with these sums: carry the old baselines over (or start at zero).
+            carried = self._efficiency.seed_from_baselines(
+                heating_total,
+                electrical_total,
+                self._jaz_baselines.get("heating"),
+                self._jaz_baselines.get("electrical"),
+                now_ts,
+            )
+            _LOGGER.info(
+                "JAZ sums started (%s): heating %.1f kWh, electricity %.1f kWh",
+                "taken over from the old baselines" if carried else "from zero",
+                self._efficiency.heating,
+                self._efficiency.electrical,
+            )
+        else:
+            self._efficiency.update(heating_total, electrical_total, now_ts)
+        self._jaz_store.async_delay_save(self._efficiency.to_dict, ACCOUNTING_SAVE_DELAY_SECONDS)
         # Until there is real data the sensor reads 0.0 (documented in the README) rather
-        # than "Unknown", which users take for an error. Without a minimum delta, a
-        # re-anchored baseline divided by a few watts of standby draw would instead
-        # publish an arbitrary ratio, and one cycle's first minutes are too noisy to mean
-        # anything. One cycle delivers ~9 kWh of heat.
-        if heating_delta is None or electrical_delta is None:
-            self.reasons[key] = "waiting_for_first_measurement"
-            return 0.0
-        if heating_delta < _MIN_HEATING_DELTA_KWH_FOR_JAZ or electrical_delta <= 0:
+        # than "Unknown", which users take for an error.
+        ratio = self._efficiency.ratio()
+        if ratio is None:
             self.reasons[key] = "waiting_for_heating_data"
             return 0.0
-
         self.reasons[key] = None
-        return round(heating_delta / electrical_delta, 2)
+        return ratio
 
     def _compute_flow_method_cop(self, data: dict[str, Any]) -> float | None:
         """Instantaneous COP computed independently of Ochsner's own undocumented

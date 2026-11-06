@@ -2,6 +2,28 @@
 
 Alle Änderungen je Version, zuerst Deutsch, dann Englisch. / All changes per version, German first, then English.
 
+## 0.15.1
+
+### Deutsch
+
+**Behoben**
+- **Die JAZ bleibt nach einem Zähler-Reset richtig.** Die Regelung setzt ihre Energiezähler jedes Jahr zum Ende der Verbrauchsperiode auf 0 (Heizenergie, Warmwasser-, Abtau-, Kühlenergie), ein externer Stromzähler kann getauscht oder zurückgesetzt werden. Bisher wurde dabei nur die eine Baseline neu verankert, die andere behielt ihren alten Wert, und die JAZ war monatelang falsch (beobachtet: 0,23 statt 2,29). Jetzt führt die Integration zwei laufende Summen (Heizwärme, Strom): Ein Rückgang eines Zählers gilt als Reset, die Summe zählt ab da weiter, die andere Seite bleibt unberührt, ohne Einstellung und unabhängig vom Zeitpunkt des Resets.
+- Beim ersten Start nach dem Update übernimmt die JAZ ihre bisherigen Werte aus der alten Baseline. Ist der Stand physikalisch unmöglich (JAZ unter 0,5 bei mehr als 50 kWh Strom, Folge eines halb behandelten Resets), beginnen die Summen bei 0.
+
+**Geändert**
+- Die JAZ-Summen werden gespeichert (eigener Speicher, überleben Neustart und Neuanlage); die JAZ-Baseline im Config-Eintrag wird nicht mehr geschrieben. Entitäten, Schlüssel und Verlauf bleiben unverändert.
+- README: Abschnitt zu Zähler-Resets; Hinweis, dass die Werte der Vorjahre (Statistik) und die Warmwasser-/Abtauenergie der Regelung nur am Bedienteil, nicht per Modbus lesbar sind.
+
+### English
+
+**Fixed**
+- **The SPF stays correct after a counter reset.** The controller sets its energy counters back to 0 every year at the end of the consumption period (heating, hot-water, defrost and cooling energy), and an external electricity meter can be replaced or reset. Until now only one baseline was re-anchored while the other kept its old value, so the SPF was wrong for months (observed: 0.23 instead of 2.29). The integration now keeps two running sums (heating heat, electricity): a decrease of a counter counts as a reset, the sum continues from there and the other side is left untouched, without a setting and regardless of when the reset happens.
+- On the first start after the update the SPF takes over its previous values from the old baseline. If that state is physically impossible (SPF below 0.5 with more than 50 kWh of electricity, the result of a half-handled reset), the sums start at 0.
+
+**Changed**
+- The SPF sums are stored (their own storage, they survive restarts and re-adding the integration); the SPF baseline in the config entry is no longer written. Entities, keys and history are unchanged.
+- README: section on counter resets; note that the previous years' values (statistics) and the controller's hot-water/defrost energy can only be read on the display, not over Modbus.
+
 ## 0.15.0
 
 ### Deutsch

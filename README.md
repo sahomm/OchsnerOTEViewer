@@ -19,7 +19,7 @@ Dieses Projekt wurde von [sahomm](https://github.com/sahomm) mit Unterstützung 
 
 ## Update-Hinweise
 
-Ab **v0.15.0** ist nach einem Update kein Entfernen oder Neuanlegen nötig: Die neuen Sensoren erscheinen automatisch, vorhandene Sensoren, Verlauf und JAZ-Baseline bleiben unverändert. Alle Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
+Ab **v0.15.0** ist nach einem Update kein Entfernen oder Neuanlegen nötig: Die neuen Sensoren erscheinen automatisch, vorhandene Sensoren und Verlauf bleiben unverändert. Ab **v0.15.1** übernimmt die JAZ beim ersten Start ihre bisherigen Werte aus der alten Baseline (ein Zustand, der nach einem halb behandelten Zähler-Reset physikalisch unmöglich ist, wird verworfen und die JAZ beginnt neu). Alle Änderungen je Version: [CHANGELOG.md](CHANGELOG.md).
 
 **Ab v0.11.0:**
 
@@ -118,13 +118,22 @@ korrigieren) – bitte über ein Issue oder einen PR melden.
 
 **Effizienz-Sensor (JAZ):** Der Sensor "JAZ (Heizzähler ÷ Gesamtstrom)" berechnet sich aus
 Heizenergie ÷ elektrischer Energie – **nicht** aus den rohen
-Lebenszeit-Zählerständen, sondern aus der **Veränderung seit der ersten erfolgreichen
-Messung** (bzw. seit einem erkannten Zähler-Reset). Grund: Ochsners eigener
-Heizenergie-Zähler läuft seit Inbetriebnahme der Anlage (oft Jahre), ein frisch
-hinzugefügter externer Stromzähler aber erst seit wenigen Tagen – eine Division der
-rohen Lebenszeit-Werte ergäbe einen sinnlos hohen Wert (in der Praxis beobachtet: JAZ von
-126 statt eines realistischen Werts um 3–5). Das gilt unabhängig davon, ob die
-elektrische Seite aus Ochsners eigenem Register oder einem externen Sensor kommt.
+Lebenszeit-Zählerständen, sondern aus zwei laufenden Summen, die ab dem ersten Start
+mitlaufen. Grund: Ochsners eigener Heizenergie-Zähler läuft seit Inbetriebnahme der
+Anlage (oft Jahre), ein frisch hinzugefügter externer Stromzähler aber erst seit wenigen
+Tagen – eine Division der rohen Lebenszeit-Werte ergäbe einen sinnlos hohen Wert (in der
+Praxis beobachtet: JAZ von 126 statt eines realistischen Werts um 3–5). Das gilt
+unabhängig davon, ob die elektrische Seite aus Ochsners eigenem Register oder einem
+externen Sensor kommt.
+
+**Zähler-Resets (ab v0.15.1):** Die Regelung beginnt jedes Jahr eine neue Verbrauchsperiode
+und setzt dabei ihre Energiezähler (Heiz-, Warmwasser-, Abtau-, Kühlenergie) auf 0; die
+Werte der letzten Jahre stehen am Bedienteil im Menü „Statistik“, per Modbus kommen sie nicht
+an. Auch ein getauschter oder zurückgesetzter externer Stromzähler setzt seinen Zähler
+zurück. Die Integration erkennt jeden Rückgang eines Zählers selbst, zählt ab dem Reset
+weiter und lässt die andere Seite unberührt, **ohne Einstellung und unabhängig vom
+Zeitpunkt des Resets**. Der Sensor „Heizenergie (gesamt, kWh)“ springt beim Reset wie jeder
+Zähler auf 0; Home Assistant behandelt das in Statistik und Energie-Dashboard korrekt.
 
 Beachte: Der Heizenergie-Zähler der Regelung zählt das Warmwasser nicht mit, der Strom aber
 schon. Diese JAZ liegt deshalb unter dem tatsächlichen Gesamtwert; den vollständigen Wert zeigt
@@ -211,7 +220,7 @@ Assistants Langzeitstatistik seinen Verlauf ab sofort mitschreibt.
 
 **"0" bei COP und JAZ ist normal, kein Fehler:** Der berechnete COP ist ein Momentanwert und
 hat nur Werte, solange der Kompressor läuft – im Stillstand (den größten Teil des Tages) steht
-er auf **0**. Der JAZ steht auf **0**, bis seit der ersten Messung mindestens 1 kWh
+er auf **0**. Der JAZ steht auf **0**, bis seit dem Start der Summen mindestens 1 kWh
 Heizenergie angefallen ist (ein Heizzyklus liefert rund 9 kWh) – er wird also erst nach dem
 ersten kompletten Heizdurchlauf berechnet. Beide Sensoren haben ein Attribut `reason`, das
 erklärt, warum gerade 0 angezeigt wird (z. B. `compressor_not_running`,
@@ -286,8 +295,8 @@ nicht berücksichtigt sind; mit Schwelle rechnet er aus Heizzähler und Warmwass
 **Zurücksetzen und Neuanlage.** Die Summen werden gespeichert und überleben Neustart und
 Update. Unter *Konfigurieren* (und in der Einrichtung) lassen sie sich mit **„Kumulierte
 COP-Summen zurücksetzen“** einmalig verwerfen. Sie bleiben auch erhalten, wenn du die
-Integration entfernst und mit denselben Verbindungsdaten neu anlegst; die JAZ-Baseline beginnt
-dabei neu, die Entitäten-IDs und der Verlauf bleiben.
+Integration entfernst und mit denselben Verbindungsdaten neu anlegst; die JAZ-Summen werden
+dabei ebenfalls gespeichert und laufen weiter, die Entitäten-IDs und der Verlauf bleiben.
 
 **Entitäten-IDs.** Neue Sensoren bekommen IDs der Form `sensor.ochsner_heatpump_<schlüssel>`,
 unabhängig vom Raum, in dem das Gerät liegt (Home Assistant stellt sonst den Raumnamen
