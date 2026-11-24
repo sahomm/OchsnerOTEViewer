@@ -48,13 +48,18 @@ MODES = (
     MODE_UNKNOWN,
 )
 
-# Values of the heat pump status register (10D). 12 (defrost) and 9 (draining) are listed in the
-# OTE operating instructions (status code 02-053) and were confirmed on real defrost cycles;
-# 29 (overshoot) is not listed there and comes from observation.
-STATUS_STANDBY = 0
-STATUS_ACTIVE = (1, 29)
+# Values of the heat pump status register (10D), see the OTE operating instructions (status
+# code 02-053). 12 (defrost 1) and 9 (draining) were confirmed on real defrost cycles, 6 (lead
+# time before defrost) on 2026-11-23. 7, 11, 13, 14 are the other defrost steps, listed but
+# never observed. 10 (defrost lock time) is normal operation: the criteria are met, the pump
+# keeps heating. 28 (minimum off time) is treated as standby, which is an assumption: the
+# manual lists it for the auxiliary heater only. 29 (overshoot) is not listed there and comes
+# from observation. Everything else (3 external lock, 15-17 alarm/fault/blocked, ...) stays
+# unknown on purpose.
+STATUS_STANDBY = (0, 28)
+STATUS_ACTIVE = (1, 10, 29)
 STATUS_STARTING = 2
-STATUS_DEFROST = (12, 9)
+STATUS_DEFROST = (6, 7, 9, 11, 12, 13, 14)
 
 REASON_NOT_CONFIGURED = "dhw_detection_not_configured"
 REASON_FLOW_UNAVAILABLE = "volume_flow_unavailable"
@@ -189,7 +194,7 @@ class Accounting:
     def _classify(self, status: Optional[int], flow: Optional[float]) -> str:
         self.status_code = status
         self.mode_reason = None
-        if status == STATUS_STANDBY:
+        if status in STATUS_STANDBY:
             self._in_dhw = False
             if flow is not None and flow > 0:
                 return MODE_RUN_ON

@@ -2,6 +2,18 @@
 
 Alle Änderungen je Version, zuerst Deutsch, dann Englisch. / All changes per version, German first, then English.
 
+## 0.15.2
+
+### Deutsch
+
+**Behoben**
+- **Die Betriebsart zeigt beim Abtauen nicht mehr kurz „Unbekannt“.** Vor dem Abtauen meldet die Regelung eine Minute lang den Statuscode 6 („Vorlaufzeit Abtaubetrieb“), den die Integration nicht kannte (beobachtet bei −7 °C Außentemperatur). Jetzt zählen 6, 7, 11, 13 und 14 als Abtauen, 10 (Abtausperrzeit) als normaler Betrieb und 28 (Minimale Auszeit) als Standby. Alle anderen unbekannten Werte, auch Alarm und Störung, bleiben „Unbekannt“.
+
+### English
+
+**Fixed**
+- **The operating mode no longer shows "Unknown" briefly before a defrost.** Before defrosting the controller reports status code 6 ("lead time defrost operation") for a minute, which the integration did not know (observed at −7 °C outdoor temperature). Now 6, 7, 11, 13 and 14 count as defrost, 10 (defrost lock time) as normal operation and 28 (minimum off time) as standby. All other unknown values, including alarm and fault, stay "Unknown".
+
 ## 0.15.1
 
 ### Deutsch

@@ -281,7 +281,12 @@ heat (`method: counter_plus_dhw`).
   instructions (status code 02-053) and were confirmed on several defrost cycles (compressor
   off, hot-gas and suction pressure swapped, flow below return temperature, heat source warming
   up); both count as defrost. `29` (overshoot with the compressor still running) is not listed
-  there and comes from observation. Unknown values show up as "Unknown".
+  there and comes from observation. From v0.15.2 the defrost lead-in and further steps `6`, `11`
+  (lead time, pre-heating) and `7`, `13`, `14` also count as defrost (`6` was observed on
+  2026-11-23, the others are only from the manual). `10` (defrost lock time) counts as normal
+  operation and `28` (minimum off time) as standby (an assumption: the manual lists it for the
+  auxiliary heater only). All other values (e.g. `3` externally locked, `15`-`17`
+  alarm/fault/blocked) show up as "Unknown".
 
 **Reset and re-adding.** The totals are saved and survive restarts and updates. Under
 *Configure* (and during setup) **"Reset the cumulative COP totals"** discards them once. They

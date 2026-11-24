@@ -291,8 +291,12 @@ nicht berücksichtigt sind; mit Schwelle rechnet er aus Heizzähler und Warmwass
 - Die Statuswerte `12` (Abtauen) und `9` (Abtropfen) stehen in der Bedienungsanleitung der OTE
   (Statuscode 02-053) und wurden an mehreren Abtauvorgängen bestätigt (Verdichter aus, Heiß- und
   Sauggasdruck vertauscht, Vorlauf unter Rücklauf, Wärmequelle erwärmt sich); beide gelten als
-  Abtauen. `29` (Auslauf bei laufendem Verdichter) steht dort nicht und stammt aus Beobachtung.
-  Unbekannte Werte erscheinen als „Unbekannt“.
+  Abtauen. Ab v0.15.2 gelten auch die Abtau-Vorstufen und -Stufen `6`, `11` (Vorlaufzeit, Vorheizung)
+  sowie `7`, `13`, `14` als Abtauen (`6` am 2026-11-23 beobachtet, die übrigen nur aus der Anleitung).
+  `10` (Abtausperrzeit) zählt als normaler Betrieb, `28` (Minimale Auszeit) als Standby (Annahme:
+  die Anleitung nennt sie nur bei der Zusatzheizung). `29` (Auslauf bei laufendem Verdichter) steht
+  dort nicht und stammt aus Beobachtung. Alle übrigen Werte (z. B. `3` extern gesperrt, `15`–`17`
+  Alarm/Störung/Blockiert) erscheinen als „Unbekannt“.
 
 **Zurücksetzen und Neuanlage.** Die Summen werden gespeichert und überleben Neustart und
 Update. Unter *Konfigurieren* (und in der Einrichtung) lassen sie sich mit **„Kumulierte
