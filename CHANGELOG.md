@@ -2,6 +2,24 @@
 
 Alle Änderungen je Version, zuerst Deutsch, dann Englisch. / All changes per version, German first, then English.
 
+## 0.16.0
+
+### Deutsch
+
+**Neu**
+- Sensor **„Abtauwärme“** (kWh, kumuliert): die Wärme, die das Abtauen dem Heizkreis wieder entzieht, berechnet aus Volumenstrom × Spreizung (Statuswerte 7, 9, 12, 13, 14). „COP letzter Lauf“ hat das neue Attribut Abtauwärme.
+
+**Behoben**
+- **Heiz-COP, COP gesamt und COP letzter Lauf waren im Winter zu hoch.** Der Heizzähler der Regelung zählt brutto; die Abtauwärme wird jetzt abgezogen (an der Anlage des Autors rund 2,6 %; Gegenprobe mit dem Reglerzähler: 22,3 gegen 22,2 kWh). Der Abzug gilt ab dem Update, die Werte sinken daher allmählich; wer sofort neu beginnen will, setzt die COP-Summen zurück. Die JAZ (Heizzähler ÷ Gesamtstrom) und der Rückfall ohne Warmwasser-Schwelle bleiben unverändert. Gespeicherte Summen und Entitäten-IDs bleiben erhalten.
+
+### English
+
+**New**
+- Sensor **"Defrost heat"** (kWh, cumulative): the heat that defrosting takes back out of the heating circuit, calculated from volume flow × spread (status values 7, 9, 12, 13, 14). "COP last run" has the new attribute defrost heat.
+
+**Fixed**
+- **Heating COP, total COP and COP of the last run were too high in winter.** The controller's heating meter counts gross; the defrost heat is now subtracted (about 2.6 % on the author's plant; cross-check with the controller's counter: 22.3 vs 22.2 kWh). The subtraction starts with the update, so the values drop gradually; reset the COP totals to start over at once. The SPF (heating meter ÷ total electricity) and the fallback without a hot-water threshold are unchanged. Saved totals and entity IDs stay.
+
 ## 0.15.2
 
 ### Deutsch

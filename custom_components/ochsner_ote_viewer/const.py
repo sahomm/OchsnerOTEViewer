@@ -613,6 +613,13 @@ ACCOUNTING_SENSORS: tuple[OchsnerAccountingSensorDescription, ...] = (
         device_class=SensorDeviceClass.ENERGY,
     ),
     OchsnerAccountingSensorDescription(
+        key="defrost_heat_energy",
+        needs=NEEDS_ELECTRIC,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+    ),
+    OchsnerAccountingSensorDescription(
         key="heating_electrical_energy",
         needs=NEEDS_ELECTRIC_DHW,
         unit=UnitOfEnergy.KILO_WATT_HOUR,

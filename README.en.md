@@ -238,8 +238,9 @@ the new ones appear by themselves on update.
 | Sensor | Meaning | Created |
 |---|---|---|
 | Operating mode | Standby, Starting, Running, Heating, Hot water, Defrost, Run-on, Unknown (in the Home Assistant language); the raw value is in the attribute `status_code` | always |
+| Defrost heat (calculated, from v0.16.0) | cumulative heat that defrosting takes back out of the heating circuit (kWh, `total_increasing`) | with an electricity meter |
 | COP total (cumulative) | total heat ÷ total electricity since start or reset; attributes: hot-water share of electricity and heat, `method` | with an electricity meter |
-| COP last run | one value per compressor run; attributes: duration, max. flow temperature, heat, electricity, hot-water share, defrost duration, `partial` | with an electricity meter |
+| COP last run | one value per compressor run; attributes: duration, max. flow temperature, heat, electricity, hot-water share, defrost duration, defrost heat, `partial` | with an electricity meter |
 | COP heating / COP hot water (cumulative) | heating and hot water separately | with an electricity meter and hot-water detection |
 | Electricity heating, electricity hot water, heat hot water (calculated) | the cumulative kWh totals behind them (`total_increasing`), also usable for evaluations over periods with Home Assistant statistics | with an electricity meter and hot-water detection |
 
@@ -263,10 +264,21 @@ not accounted for; with a threshold it is calculated from the heating meter plus
 heat (`method: counter_plus_dhw`).
 
 **How it is calculated.**
-- Heating COP = heating meter ÷ electricity (heating, starting, defrost, run-on).
+- Heating COP = (heating meter − defrost heat) ÷ electricity (heating, starting, defrost, run-on).
 - Hot-water COP = hot-water heat ÷ hot-water electricity, with hot-water heat = volume flow ×
   spread (flow - return) × 4.186 / 60.
-- COP total = (heating meter outside hot water + hot-water heat) ÷ total electricity.
+- COP total = (heating meter outside hot water − defrost heat + hot-water heat) ÷ total electricity.
+- **Defrost heat (from v0.16.0).** The heating meter counts gross: it does not subtract the
+  heat a defrost takes back out of the heating circuit. The integration calculates it from
+  volume flow × spread as the net value over the status values `7`, `9`, `12`, `13`, `14`,
+  books it when the defrost ends and subtracts it for the heating COP, the total COP and the
+  COP of the last run. The lead-in steps `6` and `11` do not count (assumption). Without
+  volume flow or temperatures nothing is subtracted; a restart during a defrost drops that
+  event. On the author's plant the calculation gave 22.3 kWh for 14 defrosts, the controller
+  showed 22.2 kWh (defrost energy 23-004, readable on the control panel only; the controller
+  resets it yearly, the integration's total does not). The subtraction starts with the
+  update; earlier defrosts stay in the totals unless you reset the COP totals. The SPF
+  (heating meter ÷ total electricity) stays gross.
 - The controller's heating-energy counter only counts a few steps of hot-water charging, at
   the valve changeover; these steps are **not counted** during a hot-water run so the heat is
   not counted twice.

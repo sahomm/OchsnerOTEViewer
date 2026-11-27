@@ -19,6 +19,10 @@ Rules (see README):
 * Hot-water heat = volume flow x (flow - return) x 4.186 / 60, only while the mode is hot
   water.
 * Standby electricity is part of the total only, not of heating.
+* Defrost heat: the heating counter does not subtract the heat a defrost takes back out of
+  the heating system. It is measured as the net flow integral over one defrost (statuses in
+  STATUS_DEFROST_HEAT), added to its own total when the defrost ends, and subtracted from
+  the heating heat for the heating COP, the total COP and the last run.
 * Without a hot-water flow threshold, heating and hot-water COP are unknown and the total
   COP is calculated from the flow integral over all time instead.
 * A first reading, a gap (3 x poll interval + 30 s) or an implausible step only re-anchors:
@@ -60,6 +64,9 @@ STATUS_STANDBY = (0, 28)
 STATUS_ACTIVE = (1, 10, 29)
 STATUS_STARTING = 2
 STATUS_DEFROST = (6, 7, 9, 11, 12, 13, 14)
+# The steps that count for the defrost heat. 6 (lead time) and 11 (preheating) come before
+# the defrost itself and are left out (assumption from their names).
+STATUS_DEFROST_HEAT = (7, 9, 12, 13, 14)
 
 REASON_NOT_CONFIGURED = "dhw_detection_not_configured"
 REASON_FLOW_UNAVAILABLE = "volume_flow_unavailable"
@@ -96,6 +103,7 @@ _ACC_KEYS = (
     "electric_standby",
     "electric_other",  # running/unknown (no split possible)
     "flow_heat",  # flow integral over all time (fallback), defrost negative
+    "defrost_heat",  # heat taken back by defrosting, positive
 )
 
 
@@ -110,6 +118,7 @@ class _Run:
         "flow_heat",
         "flow_temp_max",
         "defrost_seconds",
+        "defrost_heat",
         "partial",
         "standby_since",
     )
@@ -124,6 +133,7 @@ class _Run:
         self.flow_heat = 0.0
         self.flow_temp_max: Optional[float] = None
         self.defrost_seconds = 0.0
+        self.defrost_heat = 0.0
         self.partial = partial
         self.standby_since: Optional[float] = None
 
@@ -146,6 +156,8 @@ class Accounting:
         self._last_counter: Optional[float] = None
         self._last_electric: Optional[float] = None
         self._run: Optional[_Run] = None
+        # Net heat taken by the defrost in progress (not saved: lost on a restart).
+        self._defrost_pending = 0.0
         self.last_run: Optional[Dict[str, Any]] = None
         self.mode = MODE_UNKNOWN
         self.mode_reason: Optional[str] = REASON_WAITING
@@ -185,6 +197,7 @@ class Accounting:
         self.acc = {k: 0.0 for k in _ACC_KEYS}
         self.last_run = None
         self._run = None
+        self._defrost_pending = 0.0
         self._last_time = None
         self._last_counter = None
         self._last_electric = None
@@ -237,6 +250,8 @@ class Accounting:
         Returns the operating mode."""
         mode = self._classify(status, flow)
         self.mode = mode
+        if mode != MODE_DEFROST:
+            self._book_defrost()
 
         inputs_ok = counter_kwh is not None and electric_kwh is not None
         prev_time = self._last_time
@@ -307,6 +322,17 @@ class Accounting:
             run.flow_heat += heat_flow
             if mode == MODE_DEFROST:
                 run.defrost_seconds += dt
+        if self.status_code in STATUS_DEFROST_HEAT:
+            self._defrost_pending -= heat_flow
+
+    def _book_defrost(self) -> None:
+        """Add a finished defrost to the totals. Booked once, so the total never falls
+        when single polls of a defrost deliver heat."""
+        heat = max(self._defrost_pending, 0.0)
+        self._defrost_pending = 0.0
+        self.acc["defrost_heat"] += heat
+        if self._run is not None:
+            self._run.defrost_heat += heat
 
     # -- runs -------------------------------------------------------------------------------
 
@@ -345,7 +371,7 @@ class Accounting:
         self._run = None
         if run is None:
             return
-        heat = run.counter_heat + run.hot_water_heat
+        heat = max(run.counter_heat - run.defrost_heat, 0.0) + run.hot_water_heat
         if self._threshold is None:
             heat = run.flow_heat
             method = METHOD_FLOW_INTEGRAL
@@ -364,6 +390,7 @@ class Accounting:
             "electric_kwh": round(run.electric, 2),
             "hot_water_share": share,
             "defrost_min": round(run.defrost_seconds / 60.0, 1),
+            "defrost_heat_kwh": round(run.defrost_heat, 2),
             "partial": run.partial,
         }
 
@@ -384,11 +411,13 @@ class Accounting:
         a = self.acc
         detect = self._threshold is not None
         electric_total = self.electric_total
+        heating_heat = max(a["counter_heat"] - a["defrost_heat"], 0.0)
         out: Dict[str, Any] = {
             "operating_mode": self.mode,
             "status_code": self.status_code,
             "mode_reason": self.mode_reason,
             "hot_water_heat_energy": round(a["hot_water_heat"], 3),
+            "defrost_heat_energy": round(a["defrost_heat"], 3),
             "heating_electrical_energy": round(a["electric_heating"], 3),
             "hot_water_electrical_energy": round(a["electric_hot_water"], 3),
             "cop_heating": None,
@@ -407,7 +436,7 @@ class Accounting:
             out["cop_hot_water_reason"] = REASON_NOT_CONFIGURED
         else:
             if a["electric_heating"] >= MIN_ELECTRIC_KWH:
-                out["cop_heating"] = round(a["counter_heat"] / a["electric_heating"], 2)
+                out["cop_heating"] = round(heating_heat / a["electric_heating"], 2)
             else:
                 out["cop_heating_reason"] = REASON_WAITING
             if a["electric_hot_water"] >= MIN_ELECTRIC_KWH:
@@ -415,7 +444,7 @@ class Accounting:
             else:
                 out["cop_hot_water_reason"] = REASON_WAITING
         if electric_total >= MIN_ELECTRIC_KWH:
-            heat = a["flow_heat"] if not detect else a["counter_heat"] + a["hot_water_heat"]
+            heat = a["flow_heat"] if not detect else heating_heat + a["hot_water_heat"]
             out["cop_total"] = round(heat / electric_total, 2)
             if detect:
                 out["share_hot_water_electric"] = round(a["electric_hot_water"] / electric_total, 3)

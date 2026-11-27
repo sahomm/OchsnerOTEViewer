@@ -272,6 +272,7 @@ class OchsnerOteViewerCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["operating_mode"] = mode
         for key in (
             "hot_water_heat_energy",
+            "defrost_heat_energy",
             "heating_electrical_energy",
             "hot_water_electrical_energy",
             "cop_heating",

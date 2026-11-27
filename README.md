@@ -248,8 +248,9 @@ unverändert; die neuen kommen beim Update von selbst dazu.
 | Sensor | Bedeutung | Wird angelegt |
 |---|---|---|
 | Betriebsart | Standby, Anlauf, Läuft, Heizen, Warmwasser, Abtauen, Nachlauf, Unbekannt (in der Sprache von Home Assistant); der Rohwert steht im Attribut `status_code` | immer |
+| Abtauwärme (berechnet, ab v0.16.0) | kumulierte Wärme, die das Abtauen dem Heizkreis wieder entzieht (kWh, `total_increasing`) | mit Stromzähler |
 | COP gesamt (kumuliert) | Wärme gesamt ÷ Gesamtstrom seit Start bzw. Reset; Attribute: Anteil Warmwasser an Strom und Wärme, `method` | mit Stromzähler |
-| COP letzter Lauf | ein Wert je Verdichterlauf; Attribute: Dauer, Vorlauf max., Wärme, Strom, Anteil Warmwasser, Abtaudauer, `partial` | mit Stromzähler |
+| COP letzter Lauf | ein Wert je Verdichterlauf; Attribute: Dauer, Vorlauf max., Wärme, Strom, Anteil Warmwasser, Abtaudauer, Abtauwärme, `partial` | mit Stromzähler |
 | COP Heizen / COP Warmwasser (kumuliert) | getrennt für Heizen und Warmwasser | mit Stromzähler und Warmwasser-Erkennung |
 | Strom Heizen, Strom Warmwasser, Wärme Warmwasser (berechnet) | die kumulierten kWh-Summen dahinter (`total_increasing`), auch für Auswertungen über Zeiträume mit der Home-Assistant-Statistik | mit Stromzähler und Warmwasser-Erkennung |
 
@@ -274,10 +275,21 @@ nicht berücksichtigt sind; mit Schwelle rechnet er aus Heizzähler und Warmwass
 (`method: counter_plus_dhw`).
 
 **So wird gerechnet.**
-- Heiz-COP = Heizzähler ÷ Strom (Heizen, Anlauf, Abtauen, Nachlauf).
+- Heiz-COP = (Heizzähler − Abtauwärme) ÷ Strom (Heizen, Anlauf, Abtauen, Nachlauf).
 - Warmwasser-COP = Warmwasser-Wärme ÷ Warmwasser-Strom, mit Warmwasser-Wärme = Volumenstrom ×
   Spreizung (Vorlauf − Rücklauf) × 4,186 / 60.
-- COP gesamt = (Heizzähler außerhalb Warmwasser + Warmwasser-Wärme) ÷ Gesamtstrom.
+- COP gesamt = (Heizzähler außerhalb Warmwasser − Abtauwärme + Warmwasser-Wärme) ÷ Gesamtstrom.
+- **Abtauwärme (ab v0.16.0).** Der Heizzähler zählt brutto: Die Wärme, die beim Abtauen aus
+  dem Heizkreis zurückgeholt wird, zieht er nicht ab. Die Integration rechnet sie aus
+  Volumenstrom × Spreizung als Netto-Wert über die Statuswerte `7`, `9`, `12`, `13`, `14`,
+  bucht sie am Ende des Abtauens und zieht sie bei Heiz-COP, COP gesamt und COP letzter Lauf
+  ab. Die Vorstufen `6` und `11` zählen nicht mit (Annahme). Ohne Volumenstrom oder
+  Temperaturen wird nichts abgezogen; ein Neustart mitten im Abtauen verwirft diesen
+  Vorgang. An der Anlage des Autors ergab die Rechnung für 14 Abtauungen 22,3 kWh, der
+  Regler zeigte 22,2 kWh (Abtauenergie 23-004, nur am Bedienteil lesbar; er wird jährlich
+  zurückgesetzt, die Summe der Integration nicht). Abgezogen wird ab dem Update; frühere
+  Abtauungen bleiben in den Summen, außer du setzt die COP-Summen zurück. Die JAZ
+  (Heizzähler ÷ Gesamtstrom) bleibt brutto.
 - Der Heizenergie-Zähler der Regelung zählt Warmwasser nur mit wenigen Schritten beim
   Umschalten des Ventils mit; diese Schritte werden im Warmwasser-Lauf **nicht mitgezählt**,
   damit die Wärme nicht doppelt eingeht.
